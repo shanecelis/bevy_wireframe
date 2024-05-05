@@ -5,10 +5,11 @@ This repo's aspiration is to provide a wireframe plugin for bevy based on this
 
 ## TODO
 
-[ ] Convert GLSL to WGSL.
-[ ] Determine where to plug into graphics pipeline.
-[ ] Create render graph node.
-[ ] Create plugin.
+- [X] Ask for assistance in #rendering on Bevy's [discord](https://bevyengine.org/community/).
+- [ ] Determine where to plug into graphics pipeline.
+- [ ] Convert GLSL to WGSL.
+- [ ] Create render graph node.
+- [ ] Create plugin.
 
 ## GLSL Code
 
