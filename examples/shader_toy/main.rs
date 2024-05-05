@@ -13,6 +13,7 @@
 ///
 /// Source: https://gist.github.com/dmlary/3822b5cda70e562a2226b3372c584ed8
 use bevy::{
+    log::LogPlugin,
     core_pipeline::core_3d::graph::{Node3d, Core3d},
     ecs::query::QueryItem,
     prelude::*,
@@ -31,23 +32,34 @@ use bevy::{
     },
 };
 use std::time::Duration;
+use std::env;
 
 fn main() {
     let mut app = App::new();
-
-    // enable hot-loading so our shader gets reloaded when it changes
-    app.add_plugins((
-        DefaultPlugins,
-        // DefaultPlugins
-        //     .set(AssetPlugin {
-        //     watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(200)),
-        //     ..default()
-        // }),
-        ShaderToyPlugin,
-    ))
-    .add_systems(Startup, setup)
-    .run();
+    let args = env::args();
+    match args.skip(1).next() {
+        Some(arg) => {
+            if arg == "dump" {
+            // disable LogPlugin so that you can pipe the output directly into `dot -Tsvg`
+            app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>());
+            app.add_plugins(
+                ShaderToyPlugin,
+            );
+            bevy_mod_debugdump::print_render_graph(&mut app);
+            }
+        }
+        _ => {
+            // enable hot-loading so our shader gets reloaded when it changes
+            app.add_plugins((
+                DefaultPlugins,
+                ShaderToyPlugin,
+            ))
+               .add_systems(Startup, setup)
+               .run();
+        }
+    }
 }
+
 
 fn setup(
     mut commands: Commands,
