@@ -45,7 +45,8 @@ fn main() {
             app.add_plugins(
                 ShaderToyPlugin,
             );
-            bevy_mod_debugdump::print_render_graph(&mut app);
+                panic!("No debug dump");
+            // bevy_mod_debugdump::print_render_graph(&mut app);
             }
         }
         _ => {
@@ -68,7 +69,7 @@ fn setup(
 ) {
     // add a cube so it's really clear when the shader doesn't run
     commands.spawn(MaterialMeshBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.5 })),
+        mesh: meshes.add(Mesh::from(Cuboid::default())),
         transform: Transform::from_xyz(0.0, 0.5, 0.0),
         material: materials.add(StandardMaterial::default()),
         ..default()
