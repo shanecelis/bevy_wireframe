@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# bevy = "0.13.2"
-bevy = { path = "../bevy" }
+bevy = "0.13.2"
+# bevy = { path = "../bevy" }
 bytemuck = "1.15.0"
-# bevy_mod_debugdump = "0.10.0"
+bevy_mod_debugdump = "0.10.0"
 # bevy_mod_debugdump = { path = "../bevy_mod_debugdump" }
 
 # [patch.crates-io]
