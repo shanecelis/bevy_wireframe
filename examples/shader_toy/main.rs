@@ -6,20 +6,20 @@
 ///
 /// This revision adds a post-processing node to the RenderGraph to
 /// execute the shader.  Thanks to @Jasmine on the bevy discord for
-/// suggesting I take a second look at the bevy post-processing example 
+/// suggesting I take a second look at the bevy post-processing example
 ///
 /// If no messages appear on stdout, set to help debug:
 ///     RUST_LOG="info,wgpu_core=warn,wgpu_hal=warn"
 ///
 /// Source: https://gist.github.com/dmlary/3822b5cda70e562a2226b3372c584ed8
 use bevy::{
-    log::LogPlugin,
-    core_pipeline::core_3d::graph::{Node3d, Core3d},
+    core_pipeline::core_3d::graph::{Core3d, Node3d},
     ecs::query::QueryItem,
+    log::LogPlugin,
     prelude::*,
     render::{
         camera::ExtractedCamera,
-        render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner, RenderLabel},
+        render_graph::{RenderGraphApp, RenderLabel, ViewNode, ViewNodeRunner},
         render_resource::{
             BlendState, CachedRenderPipelineId, ColorTargetState, ColorWrites, FragmentState,
             MultisampleState, Operations, PipelineCache, PolygonMode, PrimitiveState,
@@ -39,27 +39,21 @@ fn main() {
     match args.skip(1).next() {
         Some(arg) => {
             if arg == "dump" {
-            // disable LogPlugin so that you can pipe the output directly into `dot -Tsvg`
-            app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>());
-            app.add_plugins(
-                ShaderToyPlugin,
-            );
+                // disable LogPlugin so that you can pipe the output directly into `dot -Tsvg`
+                app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>());
+                app.add_plugins(ShaderToyPlugin);
                 panic!("No debug dump");
-            // bevy_mod_debugdump::print_render_graph(&mut app);
+                // bevy_mod_debugdump::print_render_graph(&mut app);
             }
         }
         _ => {
             // enable hot-loading so our shader gets reloaded when it changes
-            app.add_plugins((
-                DefaultPlugins,
-                ShaderToyPlugin,
-            ))
-               .add_systems(Startup, setup)
-               .run();
+            app.add_plugins((DefaultPlugins, ShaderToyPlugin))
+                .add_systems(Startup, setup)
+                .run();
         }
     }
 }
-
 
 fn setup(
     mut commands: Commands,

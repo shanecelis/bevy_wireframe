@@ -8,17 +8,10 @@
 use bevy::{
     prelude::*,
     render::{
-        mesh::{Indices},
-        render_asset::{RenderAssetUsages},
-        render_asset::{RenderAsset},
-        render_resource::{
-            PrimitiveTopology,
-        },
-        renderer::{RenderDevice},
+        mesh::Indices, render_asset::RenderAsset, render_asset::RenderAssetUsages,
+        render_resource::PrimitiveTopology, renderer::RenderDevice,
     },
-    sprite::{
-        MaterialMesh2dBundle, Mesh2dHandle,
-    },
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
 use bevy::log::LogPlugin;
@@ -150,7 +143,7 @@ fn star(
         WireframeMesh2d,
         handle,
         // SpatialBundle::INHERITED_IDENTITY,
-        SpatialBundle::from_transform(Transform::from_xyz(-300.0, -100.0, 2.0))
+        SpatialBundle::from_transform(Transform::from_xyz(-300.0, -100.0, 2.0)),
     ));
 
     // Spawn the camera

@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::log::LogPlugin;
+use bevy::prelude::*;
 
 fn main() {
     let mut app = App::new();
