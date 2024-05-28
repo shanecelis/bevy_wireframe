@@ -20,8 +20,16 @@ use bevy::{
             SetItemPipeline, SortedRenderPhase,
         },
         render_resource::{
-            binding_types::{storage_buffer, storage_buffer_read_only}, PipelineCache, PrimitiveTopology,
-            RenderPipelineDescriptor, SpecializedRenderPipeline, VertexBufferLayout, VertexFormat, VertexStepMode, *,
+            binding_types::{storage_buffer, storage_buffer_read_only},
+            PipelineCache, PrimitiveTopology,
+            RenderPipelineDescriptor, SpecializedRenderPipeline,
+            VertexBufferLayout, VertexFormat, VertexStepMode,
+            SpecializedMeshPipeline, SpecializedMeshPipelines,
+            SpecializedMeshPipelineError, VertexAttribute, Buffer, BindGroup,
+            BindGroupLayout, BindGroupEntries, BindGroupLayoutEntries,
+            ShaderStages, BufferDescriptor, BufferInitDescriptor,
+            CachedComputePipelineId, ComputePipelineDescriptor, BufferUsages,
+            ComputePassDescriptor
         },
         renderer::{RenderContext, RenderDevice},
         texture::{GpuImage},
