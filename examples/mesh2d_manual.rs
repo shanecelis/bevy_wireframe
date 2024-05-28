@@ -5,51 +5,23 @@
 //!
 //! [`Material2d`]: bevy::sprite::Material2d
 
-use bevy::ecs::system::{
-    lifetimeless::{SRes, SResMut},
-    SystemParamItem,
-};
-use bevy::render::{
-    mesh::GpuBufferInfo,
-    render_phase::{RenderCommandResult, TrackedRenderPass},
-};
 use bevy::{
-    color::palettes::basic::YELLOW,
-    core_pipeline::core_2d::Transparent2d,
-    math::FloatOrd,
     prelude::*,
     render::{
-        extract_resource::{ExtractResource, ExtractResourcePlugin},
-        mesh::{GpuMesh, Indices, MeshVertexAttribute, VertexAttributeValues},
-        render_asset::{PrepareAssetError, RenderAssetUsages, RenderAssets},
-        render_asset::{RenderAsset, RenderAssetPlugin},
-        render_graph::{self, RenderGraph, RenderLabel},
-        render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
-            SetItemPipeline, SortedRenderPhase,
-        },
+        mesh::{Indices},
+        render_asset::{RenderAssetUsages},
+        render_asset::{RenderAsset},
         render_resource::{
-            binding_types::{storage_buffer, storage_buffer_read_only},
-            BlendState, ColorTargetState, ColorWrites, Face, FragmentState, FrontFace,
-            MultisampleState, PipelineCache, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPipelineDescriptor, SpecializedRenderPipeline, SpecializedRenderPipelines,
-            TextureFormat, VertexBufferLayout, VertexFormat, VertexState, VertexStepMode, *,
+            PrimitiveTopology,
         },
-        renderer::{RenderContext, RenderDevice},
-        texture::{BevyDefault, GpuImage},
-        view::{ExtractedView, ViewTarget, VisibleEntities},
-        Extract, Render, RenderApp, RenderSet,
+        renderer::{RenderDevice},
     },
     sprite::{
-        extract_mesh2d, DrawMesh2d, Material2dBindGroupId, MaterialMesh2dBundle, Mesh2dHandle,
-        Mesh2dPipeline, Mesh2dPipelineKey, Mesh2dTransforms, MeshFlags, RenderMesh2dInstance,
-        SetMesh2dBindGroup, SetMesh2dViewBindGroup, WithMesh2d,
+        MaterialMesh2dBundle, Mesh2dHandle,
     },
-    utils::EntityHashMap,
 };
 
 use bevy::log::LogPlugin;
-use std::collections::HashMap;
 use std::f32::consts::PI;
 
 use bevy_wireframe::wireframe2d::*;
@@ -152,7 +124,7 @@ fn star(
     //     SpatialBundle::from_transform(Transform::from_xyz(300.0, 100.0, 1.0)),
     // ));
 
-    let mut shape = Circle { radius: 50.0 };
+    let shape = Circle { radius: 50.0 };
     // let mut shape = Triangle2d::new(Vec2::new(0.0, 0.0), Vec2::new(0.0, -100.0), Vec2::new(-100.0, -100.0));
     // let mut shape = Rectangle::new(25.0, 50.0);
     // dbg!(shape.winding_order());

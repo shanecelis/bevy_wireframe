@@ -31,7 +31,6 @@ use bevy::{
         RenderApp,
     },
 };
-use std::time::Duration;
 use std::env;
 
 fn main() {

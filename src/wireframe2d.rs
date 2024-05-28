@@ -1,19 +1,17 @@
 use bevy::ecs::system::{
-    lifetimeless::{SRes, SResMut, Read},
+    lifetimeless::{SRes, Read},
     SystemParamItem,
 };
 use bevy::render::{
-    mesh::{GpuBufferInfo,MeshVertexBufferLayoutRef},
+    mesh::{MeshVertexBufferLayoutRef},
     render_phase::{RenderCommandResult, TrackedRenderPass},
 };
 use bevy::{
-    color::palettes::basic::YELLOW,
     core_pipeline::core_2d::Transparent2d,
     math::FloatOrd,
     prelude::*,
     render::{
-        extract_resource::{ExtractResource, ExtractResourcePlugin},
-        mesh::{GpuMesh, Indices, MeshVertexAttribute, VertexAttributeValues},
+        mesh::{GpuMesh, VertexAttributeValues},
         render_asset::{PrepareAssetError, RenderAssetUsages, RenderAssets},
         render_asset::{RenderAsset, RenderAssetPlugin},
         render_graph::{self, RenderGraph, RenderLabel, SlotInfo, SlotType},
@@ -22,28 +20,22 @@ use bevy::{
             SetItemPipeline, SortedRenderPhase,
         },
         render_resource::{
-            binding_types::{storage_buffer, storage_buffer_read_only},
-            BlendState, ColorTargetState, ColorWrites, Face, FragmentState, FrontFace,
-            MultisampleState, PipelineCache, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPipelineDescriptor, SpecializedRenderPipeline, SpecializedRenderPipelines,
-            TextureFormat, VertexBufferLayout, VertexFormat, VertexState, VertexStepMode, *,
+            binding_types::{storage_buffer, storage_buffer_read_only}, PipelineCache, PrimitiveTopology,
+            RenderPipelineDescriptor, SpecializedRenderPipeline, VertexBufferLayout, VertexFormat, VertexStepMode, *,
         },
         renderer::{RenderContext, RenderDevice},
-        texture::{BevyDefault, GpuImage},
-        view::{ExtractedView, ViewTarget, VisibleEntities},
+        texture::{GpuImage},
+        view::{ExtractedView, VisibleEntities},
         Extract, Render, RenderApp, RenderSet,
     },
     sprite::{
-        extract_mesh2d, DrawMesh2d, Material2dBindGroupId, MaterialMesh2dBundle, Mesh2dHandle,
+        extract_mesh2d, DrawMesh2d, Material2dBindGroupId, Mesh2dHandle,
         Mesh2dPipeline, Mesh2dPipelineKey, Mesh2dTransforms, MeshFlags, RenderMesh2dInstance,
         SetMesh2dBindGroup, SetMesh2dViewBindGroup, WithMesh2d,
     },
     utils::EntityHashMap,
 };
 
-use bevy::log::LogPlugin;
-use std::collections::HashMap;
-use std::f32::consts::PI;
 
 /// A marker component for colored 2d meshes
 #[derive(Component, Default)]
@@ -520,7 +512,7 @@ impl RenderAsset for PosBuffer {
             warn!("no position vertices");
             return Err(PrepareAssetError::RetryNextUpdate(mesh));
         };
-        let v_pos_4: Vec<[f32; 4]> = positions.into_iter().map(|x| pad(*x)).collect();
+        let v_pos_4: Vec<[f32; 4]> = positions.iter().map(|x| pad(*x)).collect();
 
         let vertex_count = mesh.count_vertices();
 
@@ -610,7 +602,7 @@ impl render_graph::Node for ScreenspaceDistNode {
             let update_pipeline = pipeline_cache
                 .get_compute_pipeline(pipeline.pipeline)
                 .unwrap();
-            pass.set_bind_group(0, &bind_group, &[]);
+            pass.set_bind_group(0, bind_group, &[]);
             pass.set_pipeline(update_pipeline);
             pass.dispatch_workgroups((wireframe_binding.vertex_count / 3) as u32, 1, 1);
             graph.set_output("dist", wireframe_binding.dist_buffer.clone())?;
