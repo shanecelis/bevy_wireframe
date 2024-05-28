@@ -299,6 +299,7 @@ impl Plugin for WireframeMesh2dPlugin {
 }
 
 /// Extract the [`WireframeMesh2d`] marker component into the render app
+#[allow(clippy::type_complexity)]
 pub fn extract_wireframe_mesh2d(
     mut commands: Commands,
     mut previous_len: Local<usize>,

@@ -35,8 +35,8 @@ use std::env;
 
 fn main() {
     let mut app = App::new();
-    let args = env::args();
-    match args.skip(1).next() {
+    let mut args = env::args();
+    match args.nth(1) {
         Some(arg) => {
             if arg == "dump" {
                 // disable LogPlugin so that you can pipe the output directly into `dot -Tsvg`

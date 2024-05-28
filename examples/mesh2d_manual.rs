@@ -8,9 +8,8 @@
 use bevy::{
     prelude::*,
     render::{
-        mesh::Indices, render_asset::RenderAsset, render_asset::RenderAssetUsages,
-        render_resource::PrimitiveTopology, renderer::RenderDevice,
-    },
+        mesh::Indices, render_asset::RenderAssetUsages,
+        render_resource::PrimitiveTopology, },
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
@@ -32,7 +31,6 @@ fn main() {
 
 fn star(
     mut commands: Commands,
-    render_device: Res<RenderDevice>,
     // We will add a new Mesh for the star being created
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
