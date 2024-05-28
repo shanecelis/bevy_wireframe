@@ -1,7 +1,3 @@
 use bevy::prelude::*;
 
-
-#[cfg(test)]
-mod test {
-
-}
+pub mod wireframe2d;
