@@ -198,6 +198,7 @@ const WIREFRAME_MESH2D_SHADER: &str = r"
 // The structure of the vertex buffer is as specified in `specialize()`
 struct Vertex {
     @builtin(instance_index) instance_index: u32,
+    @builtin(vertex_index) id : u32,
     @location(0) position: vec3<f32>,
     @location(10) dist: vec4<f32>,
 };
@@ -207,6 +208,7 @@ struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     // We pass the vertex color to the fragment shader in location 0
     @location(10) dist: vec4<f32>,
+    @location(11) bary: vec3<f32>,
 };
 
 /// Entry point for the vertex shader
@@ -214,6 +216,8 @@ struct VertexOutput {
 fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
     // Project the world position of the mesh into screen position
+    let vi = vertex.id % 3;
+    out.bary = vec3<f32>(f32(vi == 0u), f32(vi == 1u), f32(vi == 2u));
     let model = mesh2d_functions::get_model_matrix(vertex.instance_index);
     out.clip_position = mesh2d_functions::mesh2d_position_local_to_clip(model, vec4<f32>(vertex.position, 1.0));
     // out.clip_position = vec4<f32>(vertex.position / 100.0, 1.0);
@@ -227,17 +231,41 @@ struct FragmentInput {
     // The color is interpolated between vertices by default
     // @location(0) color: vec4<f32>,
     @location(10) dist: vec4<f32>,
+    @location(11) bary: vec3<f32>,
 };
 const WIRE_COL: vec4<f32> = vec4(1.0, 0.0, 0.0, 1.0);
+
+fn min_index(v: vec3<f32>) -> u32 {
+   var i: u32 = 0;
+   for (var j: u32 = 1; j < 3; j++) {
+      if v[j] < v[i] {
+           i = j;
+      }
+   }
+   return i;
+}
+const pi = 3.14159265359;
 
 /// Entry point for the fragment shader
 @fragment
 fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
     let color = vec4<f32>(1.0, 1.0, 0.0, 1.0);
-    let d = min(in.dist[0], min(in.dist[1], in.dist[2]));
+    let dist = in.dist; //vec3<f32>(in.dist.w / in.dist.x, in.dist.w / in.dist.y, in.dist.w / in.dist.z);
+    let i = min_index(dist.xyz);
+    let j = (i + 2) % 3;
+    var d = dist[i];//min(dist[0], min(dist[1], dist[2]));
     let I = exp2(-2.0 * d * d);
-    // return in.color;
-    return I * WIRE_COL + (1.0 - I) * color;
+    var k = 1.0;
+    if i == 1 {
+        k = -1.0;
+    }
+
+
+    if step(sin(k * in.bary[j] * 8.0 * pi), 0.0) > 0.0 {
+       return color;
+    } else {
+       return I * WIRE_COL + (1.0 - I) * color;
+    }
 }
 ";
 
@@ -552,7 +580,7 @@ impl FromWorld for ScreenspaceDistPipeline {
             ),
         );
         let shader_defs = vec!["MODEL_DIST".into()];
-        let shader = world.load_asset("shaders/screenspace_dist.wgsl");
+        let shader = world.load_asset("shaders/dist.wgsl");
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: Some("Wireframe compute shader".into()),

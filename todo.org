@@ -1,0 +1,5 @@
+#+title: Todo
+* in bevy repo, wireframe scratch branch
+** mesh2d_manual is moving forward
+- [X] create a buffer with necessary data, data generated on CPU
+- [X] create a buffer with necessary data, data generated on GPU
