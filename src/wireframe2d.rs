@@ -10,6 +10,7 @@ use bevy::{
     core_pipeline::core_2d::Transparent2d,
     math::FloatOrd,
     prelude::*,
+    asset::{embedded_asset},
     render::{
         mesh::{GpuMesh, VertexAttributeValues},
         render_asset::{PrepareAssetError, RenderAssetUsages, RenderAssets},
@@ -50,12 +51,17 @@ pub struct WireframeMesh2d;
 pub struct WireframeMesh2dPipeline {
     /// this pipeline wraps the standard [`Mesh2dPipeline`]
     mesh2d_pipeline: Mesh2dPipeline,
+    shader: Handle<Shader>,
 }
 
 impl FromWorld for WireframeMesh2dPipeline {
     fn from_world(world: &mut World) -> Self {
+
+        let asset_server = world.resource::<AssetServer>();
+        let shader = asset_server.load::<Shader>("embedded://bevy_wireframe/wireframe.wgsl");
         Self {
             mesh2d_pipeline: Mesh2dPipeline::from_world(world),
+            shader
         }
     }
 }
@@ -86,8 +92,8 @@ impl SpecializedMeshPipeline for WireframeMesh2dPipeline {
             }],
         });
 
-        descriptor.vertex.shader = WIREFRAME_MESH2D_SHADER_HANDLE;
-        descriptor.fragment.as_mut().unwrap().shader = WIREFRAME_MESH2D_SHADER_HANDLE;
+        descriptor.vertex.shader = self.shader.clone();
+        descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
         descriptor.label = Some("wireframe_mesh2d_pipeline".into());
         Ok(descriptor)
     }
@@ -192,86 +198,6 @@ type DrawWireframeMesh2d = (
 // The custom shader can be inline like here, included from another file at build time
 // using `include_str!()`, or loaded like any other asset with `asset_server.load()`.
 const WIREFRAME_MESH2D_SHADER: &str = r"
-// Import the standard 2d mesh uniforms and set their bind groups
-#import bevy_sprite::mesh2d_functions
-
-// The structure of the vertex buffer is as specified in `specialize()`
-struct Vertex {
-    @builtin(instance_index) instance_index: u32,
-    @builtin(vertex_index) id : u32,
-    @location(0) position: vec3<f32>,
-    @location(10) dist: vec4<f32>,
-};
-
-struct VertexOutput {
-    // The vertex shader must set the on-screen position of the vertex
-    @builtin(position) clip_position: vec4<f32>,
-    // We pass the vertex color to the fragment shader in location 0
-    @location(10) dist: vec4<f32>,
-    @location(11) bary: vec3<f32>,
-};
-
-/// Entry point for the vertex shader
-@vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
-    var out: VertexOutput;
-    // Project the world position of the mesh into screen position
-    let vi = vertex.id % 3;
-    out.bary = vec3<f32>(f32(vi == 0u), f32(vi == 1u), f32(vi == 2u));
-    // out.bary *= 1.0 / vertex.dist.xyz;
-    let model = mesh2d_functions::get_model_matrix(vertex.instance_index);
-    out.clip_position = mesh2d_functions::mesh2d_position_local_to_clip(model, vec4<f32>(vertex.position, 1.0));
-    // out.clip_position = vec4<f32>(vertex.position / 100.0, 1.0);
-    // out.color = vec4<f32>(1.0, 1.0, 0.0, 1.0);
-    out.dist = vertex.dist;
-    return out;
-}
-
-// The input of the fragment shader must correspond to the output of the vertex shader for all `location`s
-struct FragmentInput {
-    // The color is interpolated between vertices by default
-    // @location(0) color: vec4<f32>,
-    @location(10) dist: vec4<f32>,
-    @location(11) bary: vec3<f32>,
-};
-const WIRE_COL: vec4<f32> = vec4(1.0, 0.0, 0.0, 1.0);
-
-fn min_index(v: vec3<f32>) -> u32 {
-   var i: u32 = 0;
-   for (var j: u32 = 1; j < 3; j++) {
-      if v[j] < v[i] {
-           i = j;
-      }
-   }
-   return i;
-}
-const pi = 3.14159265359;
-
-/// Entry point for the fragment shader
-@fragment
-fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
-    //return vec4<f32>(in.dist.w / 10000.0, 0.0, 0.0, 1.0);
-    let color = vec4<f32>(1.0, 1.0, 0.0, 1.0);
-    //let dist = in.dist;
-    // let dist = vec3<f32>(in.dist.w / in.dist.x, in.dist.w / in.dist.y, in.dist.w / in.dist.z);
-    let dist = in.dist.w * in.dist.xyz;
-    let i = min_index(dist.xyz);
-    let j = (i + 2) % 3;
-    let d = dist[i];
-    //let d = min(dist[0], min(dist[1], dist[2]));
-    let I = exp2(-2.0 * d * d);
-    var k = 1.0;
-    if i == 1 {
-        k = -1.0;
-    }
-
-
-    if step(sin(k * in.bary[j] * 10.0 * pi), 0.0) > 0.0 {
-       return color;
-    } else {
-       return I * WIRE_COL + (1.0 - I) * color;
-    }
-}
 ";
 
 /// Plugin that renders [`WireframeMesh2d`]s
@@ -281,6 +207,8 @@ pub struct WireframeMesh2dPlugin;
 pub const WIREFRAME_MESH2D_SHADER_HANDLE: Handle<Shader> =
     Handle::weak_from_u128(0x1e143d1bcc8b4699859b8863ef474752);
 
+pub const WIREFRAME_MESH2D_SHADER_PATH: &'static str = "embedded://bevy_wireframe/wireframe.wgsl";
+
 /// Our custom pipeline needs its own instance storage
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct WireframeMesh2dInstances(EntityHashMap<Entity, RenderMesh2dInstance>);
@@ -288,11 +216,13 @@ pub struct WireframeMesh2dInstances(EntityHashMap<Entity, RenderMesh2dInstance>)
 impl Plugin for WireframeMesh2dPlugin {
     fn build(&self, app: &mut App) {
         // Load our custom shader
-        let mut shaders = app.world_mut().resource_mut::<Assets<Shader>>();
-        shaders.insert(
-            &WIREFRAME_MESH2D_SHADER_HANDLE,
-            Shader::from_wgsl(WIREFRAME_MESH2D_SHADER, file!()),
-        );
+        // let mut shaders = app.world_mut().resource_mut::<Assets<Shader>>();
+
+        embedded_asset!(app, "wireframe.wgsl");
+        // shaders.insert(
+        //     &WIREFRAME_MESH2D_SHADER_HANDLE,
+        //     shader
+        // );
         app.add_plugins(RenderAssetPlugin::<PosBuffer, GpuImage>::default());
 
         let render_app = app.sub_app_mut(RenderApp);
