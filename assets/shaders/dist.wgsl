@@ -47,17 +47,17 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let v2 = p1 - p0;
 
 #ifdef MODEL_DIST
-        let area = length(cross(v1, v2)) / 2;
+        let area = length(cross(v1, v2));
 #else
         let area = abs(v1.x * v2.y - v1.y * v2.x); // Where is the 1/2 factor?
 #endif
 
-        outputBuffer[index].dist = vec4(area / length(v0), 0, 0, 0);
-        outputBuffer[index + 1].dist = vec4(0, area / length(v1), 0, 0);
-        outputBuffer[index + 2].dist = vec4(0, 0, area / length(v2), 0);
-        // outputBuffer[index + 0].dist = vec4(length(v0), 0, 0, area);
-        // outputBuffer[index + 1].dist = vec4(0, length(v1), 0, area);
-        // outputBuffer[index + 2].dist = vec4(0, 0, length(v2), area);
+        // outputBuffer[index].dist = vec4(area / length(v0), 0, 0, 0);
+        // outputBuffer[index + 1].dist = vec4(0, area / length(v1), 0, 0);
+        // outputBuffer[index + 2].dist = vec4(0, 0, area / length(v2), 0);
+        outputBuffer[index + 0].dist = vec4(1/length(v0), 0, 0, area);
+        outputBuffer[index + 1].dist = vec4(0, 1/length(v1), 0, area);
+        outputBuffer[index + 2].dist = vec4(0, 0, 1/length(v2), area);
     }
     // outputBuffer[0].dist = vec4(1.0, 1.0, 1.0, 0.0);
 }

@@ -218,6 +218,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     // Project the world position of the mesh into screen position
     let vi = vertex.id % 3;
     out.bary = vec3<f32>(f32(vi == 0u), f32(vi == 1u), f32(vi == 2u));
+    // out.bary *= 1.0 / vertex.dist.xyz;
     let model = mesh2d_functions::get_model_matrix(vertex.instance_index);
     out.clip_position = mesh2d_functions::mesh2d_position_local_to_clip(model, vec4<f32>(vertex.position, 1.0));
     // out.clip_position = vec4<f32>(vertex.position / 100.0, 1.0);
@@ -249,11 +250,15 @@ const pi = 3.14159265359;
 /// Entry point for the fragment shader
 @fragment
 fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
+    //return vec4<f32>(in.dist.w / 10000.0, 0.0, 0.0, 1.0);
     let color = vec4<f32>(1.0, 1.0, 0.0, 1.0);
-    let dist = in.dist; //vec3<f32>(in.dist.w / in.dist.x, in.dist.w / in.dist.y, in.dist.w / in.dist.z);
+    //let dist = in.dist;
+    // let dist = vec3<f32>(in.dist.w / in.dist.x, in.dist.w / in.dist.y, in.dist.w / in.dist.z);
+    let dist = in.dist.w * in.dist.xyz;
     let i = min_index(dist.xyz);
     let j = (i + 2) % 3;
-    var d = dist[i];//min(dist[0], min(dist[1], dist[2]));
+    let d = dist[i];
+    //let d = min(dist[0], min(dist[1], dist[2]));
     let I = exp2(-2.0 * d * d);
     var k = 1.0;
     if i == 1 {
@@ -261,7 +266,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
     }
 
 
-    if step(sin(k * in.bary[j] * 8.0 * pi), 0.0) > 0.0 {
+    if step(sin(k * in.bary[j] * 10.0 * pi), 0.0) > 0.0 {
        return color;
     } else {
        return I * WIRE_COL + (1.0 - I) * color;
