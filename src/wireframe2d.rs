@@ -52,16 +52,28 @@ pub struct WireframeMesh2dPipeline {
     /// this pipeline wraps the standard [`Mesh2dPipeline`]
     mesh2d_pipeline: Mesh2dPipeline,
     shader: Handle<Shader>,
+    wireframe2d_layout: BindGroupLayout,
 }
 
 impl FromWorld for WireframeMesh2dPipeline {
     fn from_world(world: &mut World) -> Self {
 
+        let render_device = world.resource::<RenderDevice>();
         let asset_server = world.resource::<AssetServer>();
         let shader = asset_server.load::<Shader>("embedded://bevy_wireframe/wireframe.wgsl");
+        let wireframe2d_layout = render_device.create_bind_group_layout(
+            "Tri",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::VERTEX,
+                (
+                    storage_buffer_read_only::<Vec<Vec4>>(false),
+                ),
+            ),
+        );
         Self {
             mesh2d_pipeline: Mesh2dPipeline::from_world(world),
-            shader
+            shader,
+            wireframe2d_layout
         }
     }
 }
@@ -82,15 +94,16 @@ impl SpecializedMeshPipeline for WireframeMesh2dPipeline {
         let mut descriptor = self.mesh2d_pipeline.specialize(key, layout)?;
 
         // Customize how to store the meshes' vertex attributes in the vertex buffer
-        descriptor.vertex.buffers.push(VertexBufferLayout {
-            array_stride: std::mem::size_of::<Vec4>() as u64,
-            step_mode: VertexStepMode::Vertex,
-            attributes: vec![VertexAttribute {
-                format: VertexFormat::Float32x4,
-                offset: 0,
-                shader_location: 10, // shader locations 0-2 are taken up by Position, Normal and UV attributes
-            }],
-        });
+        // descriptor.vertex.buffers.push(VertexBufferLayout {
+        //     array_stride: std::mem::size_of::<Vec4>() as u64,
+        //     step_mode: VertexStepMode::Vertex,
+        //     attributes: vec![VertexAttribute {
+        //         format: VertexFormat::Float32x4,
+        //         offset: 0,
+        //         shader_location: 10, // shader locations 0-2 are taken up by Position, Normal and UV attributes
+        //     }],
+        // });
+        descriptor.layout.push(self.wireframe2d_layout.clone());
 
         descriptor.vertex.shader = self.shader.clone();
         descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
@@ -189,6 +202,7 @@ type DrawWireframeMesh2d = (
     SetMesh2dBindGroup<1>,
     // Set the dist buffer as vertex buffer 1
     SetDistVertexBuffer<1>,
+    SetTriBindGroup<2>,
     // Draw the mesh
     DrawMesh2d,
     // XXX: This was our complicated way of setting the DistVertexBuffer.
@@ -240,6 +254,7 @@ impl Plugin for WireframeMesh2dPlugin {
                 Render,
                 (
                     prepare_dist_buffers.in_set(RenderSet::PrepareResources),
+                    prepare_wireframe2d_bind_group.in_set(RenderSet::PrepareBindGroups),
                     prepare_bind_group.in_set(RenderSet::PrepareBindGroups),
                 ),
             )
@@ -406,7 +421,7 @@ fn prepare_dist_buffers(
         let vertex_count = gpu_mesh.vertex_count as usize;
         let buffer = render_device.create_buffer(&BufferDescriptor {
             label: Some("dist"),
-            size: (std::mem::size_of::<Vec4>() * vertex_count) as u64,
+            size: (std::mem::size_of::<Vec4>() * vertex_count / 3) as u64,
             usage: BufferUsages::STORAGE | BufferUsages::VERTEX,
             mapped_at_creation: false,
         });
@@ -514,6 +529,7 @@ impl FromWorld for ScreenspaceDistPipeline {
                 ),
             ),
         );
+
         let shader_defs = vec!["MODEL_DIST".into()];
         let shader = world.load_asset("shaders/dist.wgsl");
         let pipeline_cache = world.resource::<PipelineCache>();
@@ -576,3 +592,57 @@ impl render_graph::Node for ScreenspaceDistNode {
         Ok(())
     }
 }
+
+#[derive(Component)]
+pub struct Wireframe2dBindGroup(BindGroup);
+
+pub fn prepare_wireframe2d_bind_group(
+    mut commands: Commands,
+    pipeline: Res<WireframeMesh2dPipeline>,
+    render_device: Res<RenderDevice>,
+    query: Query<(Entity, &DistBuffer)>,
+
+) {
+    for (entity, dist_buffer) in query.iter() {
+        commands.entity(entity)
+                .insert(Wireframe2dBindGroup(render_device.create_bind_group(
+                    "wireframe2d_bind_group",
+                    &pipeline.wireframe2d_layout,
+                    &BindGroupEntries::single(dist_buffer.buffer.as_entire_buffer_binding()))));
+    }
+}
+
+pub struct SetTriBindGroup<const I: usize>;
+impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetTriBindGroup<I> {
+    type Param = ();
+    type ViewQuery = ();
+    type ItemQuery = Read<Wireframe2dBindGroup>;
+
+    #[inline]
+    fn render<'w>(
+        item: &P,
+        _view: (),
+        bind_group: Option<&'w Wireframe2dBindGroup>,
+        _mesh2d_bind_group: (),
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+
+        let mut dynamic_offsets: [u32; 1] = Default::default();
+        let mut offset_count = 0;
+        if let Some(dynamic_offset) = item.extra_index().as_dynamic_offset() {
+            dynamic_offsets[offset_count] = dynamic_offset.get();
+            offset_count += 1;
+        }
+        let Some(bind_group) = bind_group else {
+            warn!("no bind group");
+            return RenderCommandResult::Failure;
+        };
+        pass.set_bind_group(
+            I,
+            &bind_group.0,
+            &dynamic_offsets[..offset_count],
+        );
+        RenderCommandResult::Success
+    }
+}
+

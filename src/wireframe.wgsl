@@ -1,12 +1,14 @@
 // Import the standard 2d mesh uniforms and set their bind groups
 #import bevy_sprite::mesh2d_functions
 
+@group(2) @binding(0) var<storage> tri: array<vec4<f32>>;
+
 // The structure of the vertex buffer is as specified in `specialize()`
 struct Vertex {
     @builtin(instance_index) instance_index: u32,
     @builtin(vertex_index) id : u32,
     @location(0) position: vec3<f32>,
-    @location(10) dist: vec4<f32>,
+    // @location(10) dist: vec4<f32>,
 };
 
 struct VertexOutput {
@@ -22,9 +24,10 @@ struct VertexOutput {
 fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
     // Project the world position of the mesh into screen position
+    let ti = vertex.id / 3;
     let vi = vertex.id % 3;
     out.bary = vec3<f32>(f32(vi == 0u), f32(vi == 1u), f32(vi == 2u));
-    out.bary = out.bary * 100.0;
+    // out.bary = out.bary * 100.0;
     // out.bary = out.bary / max(vertex.dist.y, vertex.dist.x, vertex.dist.z);
     // out.bary = vec3<f32>(f32(vi == 0u)/vertex.dist.x, 0.0, 0.0);
     // out.bary = vec3<f32>(0.0, 0.0, 0.0);
@@ -35,7 +38,8 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     out.clip_position = mesh2d_functions::mesh2d_position_local_to_clip(model, vec4<f32>(vertex.position, 1.0));
     // out.clip_position = vec4<f32>(vertex.position / 100.0, 1.0);
     // out.color = vec4<f32>(1.0, 1.0, 0.0, 1.0);
-    out.dist = vertex.dist;
+    //out.dist = vertex.dist;
+    out.dist = vec4<f32>(1/tri[ti].xyz * out.bary, tri[ti].w);
     return out;
 }
 
@@ -81,13 +85,13 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
     wire_color[i] = 1.0;
 
 
-    return vec4(in.bary/100.0, 1.0);
-    // let a = 1.0 / 100.0;
+    // return vec4(in.bary, 1.0);
+    let a = 1.0 * 100.0;
     // // if step(sin(k * in.bary[j] * 1.0 * pi), 0.0) > 0.0 {
-    // I *= step(sin(k * in.bary[j] * a * pi), -0.01);
-    // // I *= sin(k * in.bary[j] * 0.001 * pi);
-    //    // return color;
-    // // } else {
-    //    return I * wire_color + (1.0 - I) * color;
-    // // }
+    //I *= step(sin(k * in.bary[j] * a * pi), -0.01);
+    // I *= sin(k * in.bary[j] * 0.001 * pi);
+       // return color;
+    // } else {
+       return I * wire_color + (1.0 - I) * color;
+    // }
 }
