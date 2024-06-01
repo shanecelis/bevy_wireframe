@@ -39,7 +39,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     // out.clip_position = vec4<f32>(vertex.position / 100.0, 1.0);
     // out.color = vec4<f32>(1.0, 1.0, 0.0, 1.0);
     //out.dist = vertex.dist;
-    out.dist = vec4<f32>(1/tri[ti].xyz * out.bary, tri[ti].w);
+    out.dist = vec4<f32>(tri[ti].w/tri[ti].xyz * out.bary, f32(ti));
     return out;
 }
 
@@ -70,7 +70,7 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
     var color = vec4<f32>(1.0, 1.0, 0.0, 1.0);
     //let dist = in.dist;
     // let dist = vec3<f32>(in.dist.w / in.dist.x, in.dist.w / in.dist.y, in.dist.w / in.dist.z);
-    let dist = in.dist.w * in.dist.xyz;
+    let dist = in.dist.xyz;
     let i = min_index(dist.xyz);
     // color[i] = 1.0;
     let j = (i + 1) % 3;
@@ -86,9 +86,12 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
 
 
     // return vec4(in.bary, 1.0);
-    let a = 1.0 * 100.0;
+    let a = 1.0 / 10.0;
+    var length = tri[u32(in.dist.w)][i];
+    // length = 100.0;
+
     // // if step(sin(k * in.bary[j] * 1.0 * pi), 0.0) > 0.0 {
-    //I *= step(sin(k * in.bary[j] * a * pi), -0.01);
+    I *= step(sin(k * in.bary[j] * a * length * pi), -0.01);
     // I *= sin(k * in.bary[j] * 0.001 * pi);
        // return color;
     // } else {

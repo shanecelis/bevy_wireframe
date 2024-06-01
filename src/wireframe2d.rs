@@ -64,7 +64,7 @@ impl FromWorld for WireframeMesh2dPipeline {
         let wireframe2d_layout = render_device.create_bind_group_layout(
             "Tri",
             &BindGroupLayoutEntries::sequential(
-                ShaderStages::VERTEX,
+                ShaderStages::VERTEX | ShaderStages::FRAGMENT,
                 (
                     storage_buffer_read_only::<Vec<Vec4>>(false),
                 ),
