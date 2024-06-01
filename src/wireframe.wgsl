@@ -24,7 +24,8 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     // Project the world position of the mesh into screen position
     let vi = vertex.id % 3;
     out.bary = vec3<f32>(f32(vi == 0u), f32(vi == 1u), f32(vi == 2u));
-    // out.bary = out.bary / vertex.dist.yzx;
+    out.bary = out.bary * 100.0;
+    // out.bary = out.bary / max(vertex.dist.y, vertex.dist.x, vertex.dist.z);
     // out.bary = vec3<f32>(f32(vi == 0u)/vertex.dist.x, 0.0, 0.0);
     // out.bary = vec3<f32>(0.0, 0.0, 0.0);
     // out.bary = vec3<f32>(f32(vi == 0u)/vertex.dist.x, f32(vi == 1u), f32(vi == 2u));
@@ -80,12 +81,13 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
     wire_color[i] = 1.0;
 
 
-    let a = 10.0;
-    // if step(sin(k * in.bary[j] * 1.0 * pi), 0.0) > 0.0 {
-    I *= step(sin(k * in.bary[j] * a * pi), -0.01);
-    // I *= sin(k * in.bary[j] * 0.001 * pi);
-       // return color;
-    // } else {
-       return I * wire_color + (1.0 - I) * color;
-    // }
+    return vec4(in.bary/100.0, 1.0);
+    // let a = 1.0 / 100.0;
+    // // if step(sin(k * in.bary[j] * 1.0 * pi), 0.0) > 0.0 {
+    // I *= step(sin(k * in.bary[j] * a * pi), -0.01);
+    // // I *= sin(k * in.bary[j] * 0.001 * pi);
+    //    // return color;
+    // // } else {
+    //    return I * wire_color + (1.0 - I) * color;
+    // // }
 }
