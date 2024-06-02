@@ -7,10 +7,10 @@ use bevy::render::{
     render_phase::{RenderCommandResult, TrackedRenderPass},
 };
 use bevy::{
+    asset::embedded_asset,
     core_pipeline::core_2d::Transparent2d,
     math::FloatOrd,
     prelude::*,
-    asset::{embedded_asset},
     render::{
         mesh::{GpuMesh, VertexAttributeValues},
         render_asset::{PrepareAssetError, RenderAssetUsages, RenderAssets},
@@ -26,8 +26,7 @@ use bevy::{
             BufferDescriptor, BufferInitDescriptor, BufferUsages, CachedComputePipelineId,
             ComputePassDescriptor, ComputePipelineDescriptor, PipelineCache, PrimitiveTopology,
             RenderPipelineDescriptor, ShaderStages, SpecializedMeshPipeline,
-            SpecializedMeshPipelineError, SpecializedMeshPipelines, VertexAttribute,
-            VertexBufferLayout, VertexFormat, VertexStepMode,
+            SpecializedMeshPipelineError, SpecializedMeshPipelines,
         },
         renderer::{RenderContext, RenderDevice},
         texture::GpuImage,
@@ -57,7 +56,6 @@ pub struct WireframeMesh2dPipeline {
 
 impl FromWorld for WireframeMesh2dPipeline {
     fn from_world(world: &mut World) -> Self {
-
         let render_device = world.resource::<RenderDevice>();
         let asset_server = world.resource::<AssetServer>();
         let shader = asset_server.load::<Shader>("embedded://bevy_wireframe/wireframe.wgsl");
@@ -65,15 +63,13 @@ impl FromWorld for WireframeMesh2dPipeline {
             "Tri",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::VERTEX | ShaderStages::FRAGMENT,
-                (
-                    storage_buffer_read_only::<Vec<Vec4>>(false),
-                ),
+                (storage_buffer_read_only::<Vec<Vec4>>(false),),
             ),
         );
         Self {
             mesh2d_pipeline: Mesh2dPipeline::from_world(world),
             shader,
-            wireframe2d_layout
+            wireframe2d_layout,
         }
     }
 }
@@ -112,82 +108,25 @@ impl SpecializedMeshPipeline for WireframeMesh2dPipeline {
     }
 }
 
-pub struct SetDistVertexBuffer<const I: usize>;
-impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetDistVertexBuffer<I> {
-    type Param = ();
-    type ViewQuery = ();
-    type ItemQuery = Read<DistBuffer>;
-
-    #[inline]
-    fn render<'w>(
-        _item: &P,
-        _view: (),
-        dist_buffer: Option<&'w DistBuffer>,
-        _mesh2d_bind_group: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        let Some(dist_buffer) = dist_buffer else {
-            warn!("no dist");
-            return RenderCommandResult::Failure;
-        };
-        pass.set_vertex_buffer(I, dist_buffer.buffer.slice(..));
-        RenderCommandResult::Success
-    }
-}
-
-// pub struct WireframeDrawMesh2d;
-// impl<P: PhaseItem> RenderCommand<P> for WireframeDrawMesh2d {
-//     type Param = (SRes<RenderAssets<GpuMesh>>, SRes<WireframeMesh2dInstances>);
+// pub struct SetDistVertexBuffer<const I: usize>;
+// impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetDistVertexBuffer<I> {
+//     type Param = ();
 //     type ViewQuery = ();
 //     type ItemQuery = Read<DistBuffer>;
 
 //     #[inline]
 //     fn render<'w>(
-//         item: &P,
+//         _item: &P,
 //         _view: (),
 //         dist_buffer: Option<&'w DistBuffer>,
-//         (meshes, wireframe_mesh2d_instances): SystemParamItem<'w, '_, Self::Param>,
+//         _mesh2d_bind_group: SystemParamItem<'w, '_, Self::Param>,
 //         pass: &mut TrackedRenderPass<'w>,
 //     ) -> RenderCommandResult {
-//         let meshes = meshes.into_inner();
-//         let wireframe_mesh2d_instances = wireframe_mesh2d_instances.into_inner();
-
-//         let Some(RenderMesh2dInstance { mesh_asset_id,
-//             ..
-//         }) = wireframe_mesh2d_instances.get(&item.entity())
-//         else {
-//             warn!("no instance");
-//             return RenderCommandResult::Failure;
-//         };
-//         let Some(gpu_mesh) = meshes.get(*mesh_asset_id) else {
-//             warn!("no mesh");
-//             return RenderCommandResult::Failure;
-//         };
 //         let Some(dist_buffer) = dist_buffer else {
 //             warn!("no dist");
 //             return RenderCommandResult::Failure;
 //         };
-
-//         pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
-//         // pass.set_vertex_buffer(1, dist_buffer.buffer.slice(..));
-
-//         let batch_range = item.batch_range();
-//         match &gpu_mesh.buffer_info {
-//             GpuBufferInfo::Indexed {
-//                 buffer,
-//                 index_format,
-//                 count,
-//             } => {
-//                 warn!("Tried to draw indexed mesh with wireframe.");
-//                 return RenderCommandResult::Failure;
-//                 // pass.set_index_buffer(buffer.slice(..), 0, *index_format);
-//                 // pass.draw_indexed(0..*count, 0, batch_range.clone());
-//             }
-//             GpuBufferInfo::NonIndexed => {
-//                 pass.draw(0..gpu_mesh.vertex_count, batch_range.clone());
-//                 // pass.draw(0..6, batch_range.clone());
-//             }
-//         }
+//         pass.set_vertex_buffer(I, dist_buffer.buffer.slice(..));
 //         RenderCommandResult::Success
 //     }
 // }
@@ -201,7 +140,6 @@ type DrawWireframeMesh2d = (
     // Set the mesh uniform as bind group 1
     SetMesh2dBindGroup<1>,
     // Set the dist buffer as vertex buffer 1
-    SetDistVertexBuffer<1>,
     SetTriBindGroup<2>,
     // Draw the mesh
     DrawMesh2d,
@@ -209,19 +147,8 @@ type DrawWireframeMesh2d = (
     // WireframeDrawMesh2d,
 );
 
-// The custom shader can be inline like here, included from another file at build time
-// using `include_str!()`, or loaded like any other asset with `asset_server.load()`.
-const WIREFRAME_MESH2D_SHADER: &str = r"
-";
-
 /// Plugin that renders [`WireframeMesh2d`]s
 pub struct WireframeMesh2dPlugin;
-
-/// Handle to the custom shader with a unique random ID
-pub const WIREFRAME_MESH2D_SHADER_HANDLE: Handle<Shader> =
-    Handle::weak_from_u128(0x1e143d1bcc8b4699859b8863ef474752);
-
-pub const WIREFRAME_MESH2D_SHADER_PATH: &'static str = "embedded://bevy_wireframe/wireframe.wgsl";
 
 /// Our custom pipeline needs its own instance storage
 #[derive(Resource, Deref, DerefMut, Default)]
@@ -229,14 +156,7 @@ pub struct WireframeMesh2dInstances(EntityHashMap<Entity, RenderMesh2dInstance>)
 
 impl Plugin for WireframeMesh2dPlugin {
     fn build(&self, app: &mut App) {
-        // Load our custom shader
-        // let mut shaders = app.world_mut().resource_mut::<Assets<Shader>>();
-
         embedded_asset!(app, "wireframe.wgsl");
-        // shaders.insert(
-        //     &WIREFRAME_MESH2D_SHADER_HANDLE,
-        //     shader
-        // );
         app.add_plugins(RenderAssetPlugin::<PosBuffer, GpuImage>::default());
 
         let render_app = app.sub_app_mut(RenderApp);
@@ -601,14 +521,15 @@ pub fn prepare_wireframe2d_bind_group(
     pipeline: Res<WireframeMesh2dPipeline>,
     render_device: Res<RenderDevice>,
     query: Query<(Entity, &DistBuffer)>,
-
 ) {
     for (entity, dist_buffer) in query.iter() {
-        commands.entity(entity)
-                .insert(Wireframe2dBindGroup(render_device.create_bind_group(
-                    "wireframe2d_bind_group",
-                    &pipeline.wireframe2d_layout,
-                    &BindGroupEntries::single(dist_buffer.buffer.as_entire_buffer_binding()))));
+        commands
+            .entity(entity)
+            .insert(Wireframe2dBindGroup(render_device.create_bind_group(
+                "wireframe2d_bind_group",
+                &pipeline.wireframe2d_layout,
+                &BindGroupEntries::single(dist_buffer.buffer.as_entire_buffer_binding()),
+            )));
     }
 }
 
@@ -626,7 +547,6 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetTriBindGroup<I> {
         _mesh2d_bind_group: (),
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-
         let mut dynamic_offsets: [u32; 1] = Default::default();
         let mut offset_count = 0;
         if let Some(dynamic_offset) = item.extra_index().as_dynamic_offset() {
@@ -637,12 +557,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetTriBindGroup<I> {
             warn!("no bind group");
             return RenderCommandResult::Failure;
         };
-        pass.set_bind_group(
-            I,
-            &bind_group.0,
-            &dynamic_offsets[..offset_count],
-        );
+        pass.set_bind_group(I, &bind_group.0, &dynamic_offsets[..offset_count]);
         RenderCommandResult::Success
     }
 }
-

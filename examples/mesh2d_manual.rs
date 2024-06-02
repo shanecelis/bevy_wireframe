@@ -7,13 +7,10 @@
 
 use bevy::{
     prelude::*,
-    render::{
-        mesh::Indices, render_asset::RenderAssetUsages,
-        render_resource::PrimitiveTopology, },
+    render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
-use bevy::log::LogPlugin;
 use std::f32::consts::PI;
 
 use bevy_wireframe::wireframe2d::*;
@@ -28,9 +25,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins((
-            WireframeMesh2dPlugin,
-        ))
+        .add_plugins((WireframeMesh2dPlugin,))
         .add_systems(Startup, star)
         .run();
 }
