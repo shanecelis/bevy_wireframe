@@ -8,7 +8,7 @@
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::{Mesh2dHandle},
 };
 
 use std::f32::consts::PI;
