@@ -20,9 +20,15 @@ use bevy_wireframe::wireframe2d::*;
 
 fn main() {
     App::new()
-        .add_plugins(LogPlugin::default())
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                resolution: [800., 400.].into(),
+                title: "Wireframe 2d".into(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }))
         .add_plugins((
-            DefaultPlugins.build().disable::<LogPlugin>(),
             WireframeMesh2dPlugin,
         ))
         .add_systems(Startup, star)

@@ -43,6 +43,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let p2 = vertexInput[index + 2].position.xy;
 #endif
 
+        let resolution = vec2<f32>(800.0, 400.0);
         let v0 = p2 - p1;
         let v1 = p2 - p0;
         let v2 = p1 - p0;
