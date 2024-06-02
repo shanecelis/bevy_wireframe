@@ -93,16 +93,6 @@ impl SpecializedMeshPipeline for WireframeMesh2dPipeline {
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh2d_pipeline.specialize(key, layout)?;
 
-        // Customize how to store the meshes' vertex attributes in the vertex buffer
-        // descriptor.vertex.buffers.push(VertexBufferLayout {
-        //     array_stride: std::mem::size_of::<Vec4>() as u64,
-        //     step_mode: VertexStepMode::Vertex,
-        //     attributes: vec![VertexAttribute {
-        //         format: VertexFormat::Float32x4,
-        //         offset: 0,
-        //         shader_location: 10, // shader locations 0-2 are taken up by Position, Normal and UV attributes
-        //     }],
-        // });
         descriptor.layout.push(self.wireframe2d_layout.clone());
 
         descriptor.vertex.shader = self.shader.clone();
@@ -111,29 +101,6 @@ impl SpecializedMeshPipeline for WireframeMesh2dPipeline {
         Ok(descriptor)
     }
 }
-
-// pub struct SetDistVertexBuffer<const I: usize>;
-// impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetDistVertexBuffer<I> {
-//     type Param = ();
-//     type ViewQuery = ();
-//     type ItemQuery = Read<DistBuffer>;
-
-//     #[inline]
-//     fn render<'w>(
-//         _item: &P,
-//         _view: (),
-//         dist_buffer: Option<&'w DistBuffer>,
-//         _mesh2d_bind_group: SystemParamItem<'w, '_, Self::Param>,
-//         pass: &mut TrackedRenderPass<'w>,
-//     ) -> RenderCommandResult {
-//         let Some(dist_buffer) = dist_buffer else {
-//             warn!("no dist");
-//             return RenderCommandResult::Failure;
-//         };
-//         pass.set_vertex_buffer(I, dist_buffer.buffer.slice(..));
-//         RenderCommandResult::Success
-//     }
-// }
 
 // This specifies how to render a colored 2d mesh
 type DrawWireframeMesh2d = (
@@ -148,7 +115,6 @@ type DrawWireframeMesh2d = (
     // Draw the mesh
     DrawMesh2d,
     // XXX: This was our complicated way of setting the DistVertexBuffer.
-    // WireframeDrawMesh2d,
 );
 
 /// Plugin that renders [`WireframeMesh2d`]s
