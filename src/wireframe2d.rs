@@ -47,11 +47,9 @@ use bevy::{
     utils::EntityHashMap,
 };
 
-/// A marker component for colored 2d meshes
 #[derive(Component, Default)]
 pub struct WireframeMesh2d;
 
-/// Custom pipeline for 2d meshes with vertex colors
 #[derive(Resource)]
 pub struct WireframeMesh2dPipeline {
     /// this pipeline wraps the standard [`Mesh2dPipeline`]

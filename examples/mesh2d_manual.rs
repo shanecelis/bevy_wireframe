@@ -34,8 +34,6 @@ fn star(
     mut commands: Commands,
     // We will add a new Mesh for the star being created
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    // mut dist_buffer: ResMut<Buffers>
 ) {
     // Let's define the mesh for the object we want to draw: a nice star.
     // We will specify here what kind of topology is used to define the mesh,
@@ -75,15 +73,6 @@ fn star(
 
     // Set the position attribute
     star.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
-    // star.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0.0, 0., 1.]; 10]);
-    // star.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0.0, 0.]; 10]);
-    // And a RGB color attribute as well
-    // let mut v_color: Vec<u32> = vec![LinearRgba::BLACK.as_u32()];
-    // v_color.extend_from_slice(&[LinearRgba::from(YELLOW).as_u32(); 10]);
-    // star.insert_attribute(
-    //     MeshVertexAttribute::new("Vertex_Color", 1, VertexFormat::Uint32),
-    //     v_color,
-    // );
 
     // Now, we specify the indices of the vertex that are going to compose the
     // triangles in our star. Vertices in triangles have to be specified in CCW
@@ -109,39 +98,15 @@ fn star(
         handle.clone(),
         SpatialBundle::INHERITED_IDENTITY,
     ));
-
-    // commands.spawn((
-    //     WireframeMesh2d,
-    //     handle,
-    //     SpatialBundle::from_transform(Transform::from_xyz(300.0, 100.0, 1.0)),
-    // ));
-
     let shape = Circle { radius: 50.0 };
-    // let mut shape = Triangle2d::new(Vec2::new(0.0, 0.0), Vec2::new(0.0, -100.0), Vec2::new(-100.0, -100.0));
-    // let mut shape = Rectangle::new(25.0, 50.0);
-    // dbg!(shape.winding_order());
-    // shape.reverse();
-    // dbg!(shape.winding_order());
     let mut circle: Mesh = shape.into();
-    // let mut circle: Mesh = Rectangle::new(25.0, 50.0);
-    dbg!(circle.count_vertices());
     circle.duplicate_vertices();
-    // dbg!(&circle);
     circle.asset_usage = RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD;
-    dbg!(circle.count_vertices());
     let handle = Mesh2dHandle(meshes.add(circle.clone()));
-
-    commands.spawn(MaterialMesh2dBundle {
-        mesh: handle.clone(),
-        material: materials.add(Color::hsl(180.0, 0.95, 0.7)),
-        transform: Transform::from_xyz(-300.0, 100.0, 10.0),
-        ..default()
-    });
 
     commands.spawn((
         WireframeMesh2d,
         handle,
-        // SpatialBundle::INHERITED_IDENTITY,
         SpatialBundle::from_transform(Transform::from_xyz(-300.0, -100.0, 2.0)),
     ));
 
