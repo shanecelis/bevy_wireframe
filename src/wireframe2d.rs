@@ -157,6 +157,7 @@ pub struct WireframeMesh2dInstances(EntityHashMap<Entity, RenderMesh2dInstance>)
 impl Plugin for WireframeMesh2dPlugin {
     fn build(&self, app: &mut App) {
         embedded_asset!(app, "wireframe.wgsl");
+        embedded_asset!(app, "dist.wgsl");
         app.add_plugins(RenderAssetPlugin::<PosBuffer, GpuImage>::default());
 
         let render_app = app.sub_app_mut(RenderApp);
@@ -451,7 +452,7 @@ impl FromWorld for ScreenspaceDistPipeline {
         );
 
         let shader_defs = vec!["MODEL_DIST".into()];
-        let shader = world.load_asset("shaders/dist.wgsl");
+        let shader = world.load_asset::<Shader>("embedded://bevy_wireframe/dist.wgsl");
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: Some("Wireframe compute shader".into()),
