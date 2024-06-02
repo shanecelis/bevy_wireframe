@@ -1,43 +1,49 @@
-use bevy::ecs::system::{
-    lifetimeless::{Read, SRes},
-    SystemParamItem,
-};
-use bevy::render::{
-    mesh::MeshVertexBufferLayoutRef,
-    render_phase::{RenderCommandResult, TrackedRenderPass},
-};
 use bevy::{
-    asset::embedded_asset,
+    app::{App, Plugin},
+    asset::{embedded_asset, AssetServer, DirectAssetAccessExt, Handle},
     core_pipeline::core_2d::Transparent2d,
-    math::FloatOrd,
-    prelude::*,
+    ecs::{
+        component::Component,
+        entity::Entity,
+        query::{QueryState, With},
+        schedule::IntoSystemConfigs,
+        system::{
+            lifetimeless::{Read, SRes},
+            Commands, Local, Query, Res, ResMut, Resource, SystemParamItem,
+        },
+        world::{FromWorld, World},
+    },
+    log::warn,
+    math::{FloatOrd, Vec4},
+    prelude::{Deref, DerefMut},
     render::{
-        mesh::{GpuMesh, VertexAttributeValues},
+        mesh::{GpuMesh, Mesh, MeshVertexBufferLayoutRef, VertexAttributeValues},
         render_asset::{PrepareAssetError, RenderAssetUsages, RenderAssets},
         render_asset::{RenderAsset, RenderAssetPlugin},
         render_graph::{self, RenderGraph, RenderLabel, SlotInfo, SlotType},
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
-            SetItemPipeline, SortedRenderPhase,
+            RenderCommandResult, SetItemPipeline, SortedRenderPhase, TrackedRenderPass,
         },
         render_resource::{
             binding_types::{storage_buffer, storage_buffer_read_only},
             BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, Buffer,
             BufferDescriptor, BufferInitDescriptor, BufferUsages, CachedComputePipelineId,
             ComputePassDescriptor, ComputePipelineDescriptor, PipelineCache, PrimitiveTopology,
-            RenderPipelineDescriptor, ShaderStages, SpecializedMeshPipeline,
+            RenderPipelineDescriptor, Shader, ShaderStages, SpecializedMeshPipeline,
             SpecializedMeshPipelineError, SpecializedMeshPipelines,
         },
         renderer::{RenderContext, RenderDevice},
         texture::GpuImage,
-        view::{ExtractedView, VisibleEntities},
-        Extract, Render, RenderApp, RenderSet,
+        view::{ExtractedView, Msaa, ViewVisibility, VisibleEntities},
+        Extract, ExtractSchedule, Render, RenderApp, RenderSet,
     },
     sprite::{
         extract_mesh2d, DrawMesh2d, Material2dBindGroupId, Mesh2dHandle, Mesh2dPipeline,
         Mesh2dPipelineKey, Mesh2dTransforms, MeshFlags, RenderMesh2dInstance, SetMesh2dBindGroup,
         SetMesh2dViewBindGroup, WithMesh2d,
     },
+    transform::components::GlobalTransform,
     utils::EntityHashMap,
 };
 
