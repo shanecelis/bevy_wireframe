@@ -1,3 +1,4 @@
+use crate::compute::*;
 use bevy::{
     app::{App, Plugin},
     asset::{embedded_asset, DirectAssetAccessExt, Handle},
@@ -5,36 +6,28 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        query::{QueryState, With},
+        query::With,
         schedule::IntoSystemConfigs,
-        system::{
-            lifetimeless::{Read, SRes},
-            Commands, Local, Query, Res, ResMut, Resource, SystemParamItem,
-        },
+        system::{lifetimeless::Read, Commands, Local, Query, Res, ResMut, Resource},
         world::{FromWorld, World},
     },
     log::warn,
     math::{FloatOrd, Vec4},
     prelude::{Deref, DerefMut},
     render::{
-        mesh::{GpuMesh, Mesh, MeshVertexBufferLayoutRef, VertexAttributeValues},
-        render_asset::{PrepareAssetError, RenderAssetUsages, RenderAssets},
-        render_asset::{RenderAsset, RenderAssetPlugin},
-        render_graph::{self, RenderGraph, RenderLabel, SlotInfo, SlotType},
+        mesh::{GpuMesh, MeshVertexBufferLayoutRef},
+        render_asset::RenderAssets,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
             RenderCommandResult, SetItemPipeline, SortedRenderPhase, TrackedRenderPass,
         },
         render_resource::{
-            binding_types::{storage_buffer, storage_buffer_read_only},
-            BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, Buffer,
-            BufferDescriptor, BufferInitDescriptor, BufferUsages, CachedComputePipelineId,
-            ComputePassDescriptor, ComputePipelineDescriptor, PipelineCache, PrimitiveTopology,
-            RenderPipelineDescriptor, Shader, ShaderStages, SpecializedMeshPipeline,
-            SpecializedMeshPipelineError, SpecializedMeshPipelines,
+            binding_types::storage_buffer_read_only, BindGroup, BindGroupEntries, BindGroupLayout,
+            BindGroupLayoutEntries, PipelineCache, PrimitiveTopology, RenderPipelineDescriptor,
+            Shader, ShaderStages, SpecializedMeshPipeline, SpecializedMeshPipelineError,
+            SpecializedMeshPipelines,
         },
-        renderer::{RenderContext, RenderDevice},
-        texture::GpuImage,
+        renderer::RenderDevice,
         view::{ExtractedView, Msaa, ViewVisibility, VisibleEntities},
         Extract, ExtractSchedule, Render, RenderApp, RenderSet,
     },
@@ -46,7 +39,6 @@ use bevy::{
     transform::components::GlobalTransform,
     utils::EntityHashMap,
 };
-use crate::compute::*;
 
 #[derive(Component, Default)]
 pub struct WireframeMesh2d;
@@ -134,9 +126,7 @@ impl Plugin for WireframeMesh2dPlugin {
             )
             .add_systems(
                 Render,
-                (
-                    prepare_wireframe2d_bind_group.in_set(RenderSet::PrepareBindGroups),
-                ),
+                (prepare_wireframe2d_bind_group.in_set(RenderSet::PrepareBindGroups),),
             )
             .add_systems(
                 Render,
@@ -265,7 +255,6 @@ pub fn queue_wireframe_mesh2d(
         }
     }
 }
-
 
 #[derive(Component)]
 pub struct Wireframe2dBindGroup(BindGroup);

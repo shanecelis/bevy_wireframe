@@ -1,88 +1,38 @@
 use bevy::{
     app::{App, Plugin},
-    asset::{embedded_asset, DirectAssetAccessExt, Handle},
-    core_pipeline::core_2d::Transparent2d,
+    asset::{embedded_asset, DirectAssetAccessExt},
     ecs::{
         component::Component,
         entity::Entity,
         query::{QueryState, With},
         schedule::IntoSystemConfigs,
-        system::{
-            lifetimeless::{Read, SRes},
-            Commands, Local, Query, Res, ResMut, Resource, SystemParamItem,
-        },
+        system::{lifetimeless::SRes, Commands, Query, Res, ResMut, Resource, SystemParamItem},
         world::{FromWorld, World},
     },
     log::warn,
-    math::{FloatOrd, Vec4},
+    math::Vec4,
     prelude::{Deref, DerefMut},
     render::{
-        mesh::{GpuMesh, Mesh, MeshVertexBufferLayoutRef, VertexAttributeValues},
+        mesh::{GpuMesh, Mesh, VertexAttributeValues},
         render_asset::{PrepareAssetError, RenderAssetUsages, RenderAssets},
         render_asset::{RenderAsset, RenderAssetPlugin},
-        render_graph::{self, RenderGraph, RenderLabel, SlotInfo, SlotType},
-        render_phase::{
-            AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
-            RenderCommandResult, SetItemPipeline, SortedRenderPhase, TrackedRenderPass,
+        render_graph::{
+            Node, NodeRunError, RenderGraph, RenderGraphContext, RenderLabel, SlotInfo, SlotType,
         },
         render_resource::{
             binding_types::{storage_buffer, storage_buffer_read_only},
             BindGroup, BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, Buffer,
             BufferDescriptor, BufferInitDescriptor, BufferUsages, CachedComputePipelineId,
-            ComputePassDescriptor, ComputePipelineDescriptor, PipelineCache, PrimitiveTopology,
-            RenderPipelineDescriptor, Shader, ShaderStages, SpecializedMeshPipeline,
-            SpecializedMeshPipelineError, SpecializedMeshPipelines,
+            ComputePassDescriptor, ComputePipelineDescriptor, PipelineCache, Shader, ShaderStages,
         },
         renderer::{RenderContext, RenderDevice},
         texture::GpuImage,
-        view::{ExtractedView, Msaa, ViewVisibility, VisibleEntities},
-        Extract, ExtractSchedule, Render, RenderApp, RenderSet,
+        Render, RenderApp, RenderSet,
     },
-    sprite::{
-        extract_mesh2d, DrawMesh2d, Material2dBindGroupId, Mesh2dHandle, Mesh2dPipeline,
-        Mesh2dPipelineKey, Mesh2dTransforms, MeshFlags, RenderMesh2dInstance, SetMesh2dBindGroup,
-        SetMesh2dViewBindGroup, WithMesh2d,
-    },
-    transform::components::GlobalTransform,
-    utils::EntityHashMap,
+    sprite::{Mesh2dHandle, RenderMesh2dInstance},
 };
 
 use crate::wireframe2d::{WireframeMesh2d, WireframeMesh2dInstances};
-
-pub struct FacePlugin;
-
-impl Plugin for FacePlugin {
-    fn build(&self, app: &mut App) {
-        embedded_asset!(app, "face_compute.wgsl");
-        app.add_plugins(RenderAssetPlugin::<PosBuffer, GpuImage>::default());
-
-        let render_app = app.sub_app_mut(RenderApp);
-        let node = FaceComputeNode::from_world(render_app.world_mut());
-        // Register our custom draw function, and add our render systems
-        render_app
-            // .add_systems(
-            //     ExtractSchedule,
-            //     extract_wireframe_mesh2d.after(extract_mesh2d),
-            // )
-            .add_systems(
-                Render,
-                (
-                    prepare_dist_buffers.in_set(RenderSet::PrepareResources),
-                    prepare_bind_group.in_set(RenderSet::PrepareBindGroups),
-                ),
-            );
-
-        let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
-        render_graph.add_node(FaceLabel, node);
-        render_graph.add_node_edge(FaceLabel, bevy::render::graph::CameraDriverLabel);
-    }
-
-    fn finish(&self, app: &mut App) {
-        // Register our custom pipeline
-        app.sub_app_mut(RenderApp)
-            .init_resource::<FacePipeline>();
-    }
-}
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
 pub struct FaceLabel;
@@ -93,7 +43,6 @@ pub struct FaceBinding {
     vertex_count: usize,
     dist_buffer: Buffer,
 }
-
 
 #[derive(Resource)]
 pub struct FacePipeline {
@@ -109,6 +58,34 @@ pub struct PosBuffer {
 #[derive(Component, Deref, DerefMut)]
 pub struct FaceBuffer {
     buffer: Buffer,
+}
+
+pub struct FacePlugin;
+
+impl Plugin for FacePlugin {
+    fn build(&self, app: &mut App) {
+        embedded_asset!(app, "face_compute.wgsl");
+        app.add_plugins(RenderAssetPlugin::<PosBuffer, GpuImage>::default());
+
+        let render_app = app.sub_app_mut(RenderApp);
+        let node = FaceComputeNode::from_world(render_app.world_mut());
+        render_app.add_systems(
+            Render,
+            (
+                prepare_dist_buffers.in_set(RenderSet::PrepareResources),
+                prepare_bind_group.in_set(RenderSet::PrepareBindGroups),
+            ),
+        );
+
+        let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
+        render_graph.add_node(FaceLabel, node);
+        render_graph.add_node_edge(FaceLabel, bevy::render::graph::CameraDriverLabel);
+    }
+
+    fn finish(&self, app: &mut App) {
+        // Register our custom pipeline
+        app.sub_app_mut(RenderApp).init_resource::<FacePipeline>();
+    }
 }
 
 fn prepare_dist_buffers(
@@ -133,7 +110,6 @@ fn prepare_dist_buffers(
         commands.entity(entity).insert(FaceBuffer { buffer });
     }
 }
-
 
 impl RenderAsset for PosBuffer {
     type SourceAsset = Mesh;
@@ -177,7 +153,6 @@ impl RenderAsset for PosBuffer {
         })
     }
 }
-
 
 impl FromWorld for FacePipeline {
     fn from_world(world: &mut World) -> Self {
@@ -256,7 +231,7 @@ fn prepare_bind_group(
     }
 }
 
-impl render_graph::Node for FaceComputeNode {
+impl Node for FaceComputeNode {
     fn update(&mut self, world: &mut World) {
         self.query.update_archetypes(world);
     }
@@ -267,10 +242,10 @@ impl render_graph::Node for FaceComputeNode {
 
     fn run(
         &self,
-        graph: &mut render_graph::RenderGraphContext,
+        graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
         world: &World,
-    ) -> Result<(), render_graph::NodeRunError> {
+    ) -> Result<(), NodeRunError> {
         for wireframe_binding in self.query.iter_manual(world) {
             let bind_group = &wireframe_binding.bind_group;
             let pipeline_cache = world.resource::<PipelineCache>();

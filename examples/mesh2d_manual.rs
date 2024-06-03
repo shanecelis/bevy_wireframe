@@ -8,7 +8,7 @@
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
-    sprite::{Mesh2dHandle},
+    sprite::Mesh2dHandle,
 };
 
 use std::f32::consts::PI;
@@ -46,7 +46,7 @@ fn star(
         PrimitiveTopology::TriangleList,
         // FIXME: Main world is required in order to allow PosBuffer to process
         // the mesh too.
-        RenderAssetUsages::RENDER_WORLD,// | RenderAssetUsages::MAIN_WORLD,
+        RenderAssetUsages::RENDER_WORLD, // | RenderAssetUsages::MAIN_WORLD,
     );
 
     // Vertices need to have a position attribute. We will use the following
