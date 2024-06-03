@@ -5,7 +5,7 @@ struct VertexData {
 
 // Structured buffer for output data
 struct OutputData {
-    dist: vec4<f32>,  // Output distance values
+    face: vec4<f32>,  // triangle lengths and area: (l0, l1, l2, area)
 }
 
 // Uniform for window scale
@@ -54,13 +54,13 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let area = abs(v1.x * v2.y - v1.y * v2.x); // Where is the 1/2 factor?
 #endif
 
-        // outputBuffer[index].dist = vec4(area / length(v0), 0, 0, 0);
-        // outputBuffer[index + 1].dist = vec4(0, area / length(v1), 0, 0);
-        // outputBuffer[index + 2].dist = vec4(0, 0, area / length(v2), 0);
-        // outputBuffer[index + 0].dist = vec4(1/length(v0), 0, 0, area);
-        // outputBuffer[index + 1].dist = vec4(0, 1/length(v1), 0, area);
-        // outputBuffer[index + 2].dist = vec4(0, 0, 1/length(v2), area);
-        outputBuffer[tri_index].dist = vec4(length(v0), length(v1), length(v2), area);
+        // outputBuffer[index].face = vec4(area / length(v0), 0, 0, 0);
+        // outputBuffer[index + 1].face = vec4(0, area / length(v1), 0, 0);
+        // outputBuffer[index + 2].face = vec4(0, 0, area / length(v2), 0);
+        // outputBuffer[index + 0].face = vec4(1/length(v0), 0, 0, area);
+        // outputBuffer[index + 1].face = vec4(0, 1/length(v1), 0, area);
+        // outputBuffer[index + 2].face = vec4(0, 0, 1/length(v2), area);
+        outputBuffer[tri_index].face = vec4(length(v0), length(v1), length(v2), area);
     }
-    // outputBuffer[0].dist = vec4(1.0, 1.0, 1.0, 0.0);
+    // outputBuffer[0].face = vec4(1.0, 1.0, 1.0, 0.0);
 }

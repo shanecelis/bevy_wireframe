@@ -46,7 +46,7 @@ fn star(
         PrimitiveTopology::TriangleList,
         // FIXME: Main world is required in order to allow PosBuffer to process
         // the mesh too.
-        RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
+        RenderAssetUsages::RENDER_WORLD,// | RenderAssetUsages::MAIN_WORLD,
     );
 
     // Vertices need to have a position attribute. We will use the following
@@ -101,7 +101,7 @@ fn star(
     let shape = Circle { radius: 50.0 };
     let mut circle: Mesh = shape.into();
     circle.duplicate_vertices();
-    circle.asset_usage = RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD;
+    // circle.asset_usage = RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD;
     let handle = Mesh2dHandle(meshes.add(circle.clone()));
 
     commands.spawn((

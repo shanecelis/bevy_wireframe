@@ -64,7 +64,7 @@ impl FromWorld for WireframeMesh2dPipeline {
         let render_device = world.resource::<RenderDevice>();
         let shader = world.load_asset::<Shader>("embedded://bevy_wireframe/wireframe.wgsl");
         let wireframe2d_layout = render_device.create_bind_group_layout(
-            "Tri",
+            "Face",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::VERTEX | ShaderStages::FRAGMENT,
                 (storage_buffer_read_only::<Vec<Vec4>>(false),),
@@ -88,9 +88,7 @@ impl SpecializedMeshPipeline for WireframeMesh2dPipeline {
         layout: &MeshVertexBufferLayoutRef,
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.mesh2d_pipeline.specialize(key, layout)?;
-
         descriptor.layout.push(self.wireframe2d_layout.clone());
-
         descriptor.vertex.shader = self.shader.clone();
         descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
         descriptor.label = Some("wireframe_mesh2d_pipeline".into());
@@ -106,11 +104,10 @@ type DrawWireframeMesh2d = (
     SetMesh2dViewBindGroup<0>,
     // Set the mesh uniform as bind group 1
     SetMesh2dBindGroup<1>,
-    // Set the dist buffer as vertex buffer 1
-    SetTriBindGroup<2>,
+    // Set the face buffer as bind group 2
+    SetFaceBindGroup<2>,
     // Draw the mesh
     DrawMesh2d,
-    // XXX: This was our complicated way of setting the DistVertexBuffer.
 );
 
 /// Plugin that renders [`WireframeMesh2d`]s
@@ -122,7 +119,7 @@ pub struct WireframeMesh2dInstances(EntityHashMap<Entity, RenderMesh2dInstance>)
 
 impl Plugin for WireframeMesh2dPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(crate::compute::TriPlugin);
+        app.add_plugins(crate::compute::FacePlugin);
         embedded_asset!(app, "wireframe.wgsl");
 
         let render_app = app.sub_app_mut(RenderApp);
@@ -277,21 +274,21 @@ pub fn prepare_wireframe2d_bind_group(
     mut commands: Commands,
     pipeline: Res<WireframeMesh2dPipeline>,
     render_device: Res<RenderDevice>,
-    query: Query<(Entity, &DistBuffer)>,
+    query: Query<(Entity, &FaceBuffer)>,
 ) {
-    for (entity, dist_buffer) in query.iter() {
+    for (entity, face_buffer) in query.iter() {
         commands
             .entity(entity)
             .insert(Wireframe2dBindGroup(render_device.create_bind_group(
                 "wireframe2d_bind_group",
                 &pipeline.wireframe2d_layout,
-                &BindGroupEntries::single(dist_buffer.as_entire_buffer_binding()),
+                &BindGroupEntries::single(face_buffer.as_entire_buffer_binding()),
             )));
     }
 }
 
-pub struct SetTriBindGroup<const I: usize>;
-impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetTriBindGroup<I> {
+pub struct SetFaceBindGroup<const I: usize>;
+impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetFaceBindGroup<I> {
     type Param = ();
     type ViewQuery = ();
     type ItemQuery = Read<Wireframe2dBindGroup>;

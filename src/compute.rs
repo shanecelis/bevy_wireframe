@@ -49,15 +49,15 @@ use bevy::{
 
 use crate::wireframe2d::{WireframeMesh2d, WireframeMesh2dInstances};
 
-pub struct TriPlugin;
+pub struct FacePlugin;
 
-impl Plugin for TriPlugin {
+impl Plugin for FacePlugin {
     fn build(&self, app: &mut App) {
-        embedded_asset!(app, "dist.wgsl");
+        embedded_asset!(app, "face_compute.wgsl");
         app.add_plugins(RenderAssetPlugin::<PosBuffer, GpuImage>::default());
 
         let render_app = app.sub_app_mut(RenderApp);
-        let node = ScreenspaceDistNode::from_world(render_app.world_mut());
+        let node = FaceComputeNode::from_world(render_app.world_mut());
         // Register our custom draw function, and add our render systems
         render_app
             // .add_systems(
@@ -73,22 +73,22 @@ impl Plugin for TriPlugin {
             );
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
-        render_graph.add_node(ScreenSpaceDistLabel, node);
-        render_graph.add_node_edge(ScreenSpaceDistLabel, bevy::render::graph::CameraDriverLabel);
+        render_graph.add_node(FaceLabel, node);
+        render_graph.add_node_edge(FaceLabel, bevy::render::graph::CameraDriverLabel);
     }
 
     fn finish(&self, app: &mut App) {
         // Register our custom pipeline
         app.sub_app_mut(RenderApp)
-            .init_resource::<ScreenspaceDistPipeline>();
+            .init_resource::<FacePipeline>();
     }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
-pub struct ScreenSpaceDistLabel;
+pub struct FaceLabel;
 
 #[derive(Component)]
-pub struct WireframeBinding {
+pub struct FaceBinding {
     bind_group: BindGroup,
     vertex_count: usize,
     dist_buffer: Buffer,
@@ -96,7 +96,7 @@ pub struct WireframeBinding {
 
 
 #[derive(Resource)]
-pub struct ScreenspaceDistPipeline {
+pub struct FacePipeline {
     layout: BindGroupLayout,
     pipeline: CachedComputePipelineId,
 }
@@ -107,7 +107,7 @@ pub struct PosBuffer {
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct DistBuffer {
+pub struct FaceBuffer {
     buffer: Buffer,
 }
 
@@ -125,12 +125,12 @@ fn prepare_dist_buffers(
         };
         let vertex_count = gpu_mesh.vertex_count as usize;
         let buffer = render_device.create_buffer(&BufferDescriptor {
-            label: Some("dist"),
+            label: Some("face_compute"),
             size: (std::mem::size_of::<Vec4>() * vertex_count / 3) as u64,
             usage: BufferUsages::STORAGE | BufferUsages::VERTEX,
             mapped_at_creation: false,
         });
-        commands.entity(entity).insert(DistBuffer { buffer });
+        commands.entity(entity).insert(FaceBuffer { buffer });
     }
 }
 
@@ -139,9 +139,12 @@ impl RenderAsset for PosBuffer {
     type SourceAsset = Mesh;
     type Param = (SRes<RenderDevice>,);
 
+    /// We add MAIN_WORLD to usage because we need the mesh to be accessible in
+    /// main world for at least the initialization. It would be nice to not have
+    /// to have this.
     #[inline]
     fn asset_usage(mesh: &Self::SourceAsset) -> RenderAssetUsages {
-        mesh.asset_usage
+        mesh.asset_usage | RenderAssetUsages::MAIN_WORLD
     }
 
     fn byte_len(mesh: &Self::SourceAsset) -> Option<usize> {
@@ -176,7 +179,7 @@ impl RenderAsset for PosBuffer {
 }
 
 
-impl FromWorld for ScreenspaceDistPipeline {
+impl FromWorld for FacePipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
         let layout = render_device.create_bind_group_layout(
@@ -191,25 +194,25 @@ impl FromWorld for ScreenspaceDistPipeline {
         );
 
         let shader_defs = vec!["MODEL_DIST".into()];
-        let shader = world.load_asset::<Shader>("embedded://bevy_wireframe/dist.wgsl");
+        let shader = world.load_asset::<Shader>("embedded://bevy_wireframe/face_compute.wgsl");
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-            label: Some("Wireframe compute shader".into()),
+            label: Some("Face compute shader".into()),
             layout: vec![layout.clone()],
             push_constant_ranges: Vec::new(),
             shader,
             shader_defs,
             entry_point: "main".into(),
         });
-        ScreenspaceDistPipeline { layout, pipeline }
+        FacePipeline { layout, pipeline }
     }
 }
 
-pub struct ScreenspaceDistNode {
-    query: QueryState<&'static WireframeBinding>,
+pub struct FaceComputeNode {
+    query: QueryState<&'static FaceBinding>,
 }
 
-impl FromWorld for ScreenspaceDistNode {
+impl FromWorld for FaceComputeNode {
     fn from_world(world: &mut World) -> Self {
         Self {
             query: QueryState::new(world),
@@ -219,10 +222,10 @@ impl FromWorld for ScreenspaceDistNode {
 
 fn prepare_bind_group(
     mut commands: Commands,
-    pipeline: Res<ScreenspaceDistPipeline>,
+    pipeline: Res<FacePipeline>,
     render_device: Res<RenderDevice>,
     pos_buffers: Res<RenderAssets<PosBuffer>>,
-    wireframe_mesh: Query<(Entity, &DistBuffer), With<WireframeMesh2d>>,
+    wireframe_mesh: Query<(Entity, &FaceBuffer), With<WireframeMesh2d>>,
     mut wireframe_mesh_instances: ResMut<WireframeMesh2dInstances>,
 ) {
     for (entity, dist_buffer) in wireframe_mesh.iter() {
@@ -245,7 +248,7 @@ fn prepare_bind_group(
             )),
         );
         let vertex_count = pos_buffer.vertex_count;
-        commands.entity(entity).insert(WireframeBinding {
+        commands.entity(entity).insert(FaceBinding {
             bind_group,
             vertex_count,
             dist_buffer: dist_buffer.buffer.clone(),
@@ -253,13 +256,13 @@ fn prepare_bind_group(
     }
 }
 
-impl render_graph::Node for ScreenspaceDistNode {
+impl render_graph::Node for FaceComputeNode {
     fn update(&mut self, world: &mut World) {
         self.query.update_archetypes(world);
     }
 
     fn output(&self) -> Vec<SlotInfo> {
-        vec![SlotInfo::new("dist", SlotType::Buffer)]
+        vec![SlotInfo::new("face", SlotType::Buffer)]
     }
 
     fn run(
@@ -271,7 +274,7 @@ impl render_graph::Node for ScreenspaceDistNode {
         for wireframe_binding in self.query.iter_manual(world) {
             let bind_group = &wireframe_binding.bind_group;
             let pipeline_cache = world.resource::<PipelineCache>();
-            let pipeline = world.resource::<ScreenspaceDistPipeline>();
+            let pipeline = world.resource::<FacePipeline>();
 
             let mut pass = render_context
                 .command_encoder()
@@ -283,7 +286,7 @@ impl render_graph::Node for ScreenspaceDistNode {
             pass.set_bind_group(0, bind_group, &[]);
             pass.set_pipeline(update_pipeline);
             pass.dispatch_workgroups((wireframe_binding.vertex_count / 3) as u32, 1, 1);
-            graph.set_output("dist", wireframe_binding.dist_buffer.clone())?;
+            graph.set_output("face", wireframe_binding.dist_buffer.clone())?;
         }
         Ok(())
     }
