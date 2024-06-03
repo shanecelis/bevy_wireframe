@@ -72,7 +72,7 @@ impl Plugin for FacePlugin {
         render_app.add_systems(
             Render,
             (
-                prepare_dist_buffers.in_set(RenderSet::PrepareResources),
+                prepare_face_buffers.in_set(RenderSet::PrepareResources),
                 prepare_bind_group.in_set(RenderSet::PrepareBindGroups),
             ),
         );
@@ -88,7 +88,7 @@ impl Plugin for FacePlugin {
     }
 }
 
-fn prepare_dist_buffers(
+fn prepare_face_buffers(
     mut commands: Commands,
     meshes: Res<RenderAssets<GpuMesh>>,
     query: Query<(Entity, &Mesh2dHandle)>,
@@ -117,7 +117,7 @@ impl RenderAsset for PosBuffer {
 
     /// We add MAIN_WORLD to usage because we need the mesh to be accessible in
     /// main world for at least the initialization. It would be nice to not have
-    /// to have this.
+    /// to do this.
     #[inline]
     fn asset_usage(mesh: &Self::SourceAsset) -> RenderAssetUsages {
         mesh.asset_usage | RenderAssetUsages::MAIN_WORLD

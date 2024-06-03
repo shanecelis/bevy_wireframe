@@ -7,4 +7,5 @@ edition = "2021"
 # bevy = "0.13.2"
 # bevy = { path = "../bevy" }
 bevy = { git = "https://github.com/shanecelis/bevy.git" }
+bitflags = "2.5.0"
 bytemuck = "1.15.0"

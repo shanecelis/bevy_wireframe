@@ -1069,6 +1069,7 @@ name = "bevy_wireframe"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bitflags 2.5.0",
  "bytemuck",
 ]
 

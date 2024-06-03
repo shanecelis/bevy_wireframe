@@ -22,7 +22,8 @@ use bevy::{
             RenderCommandResult, SetItemPipeline, SortedRenderPhase, TrackedRenderPass,
         },
         render_resource::{
-            binding_types::storage_buffer_read_only, BindGroup, BindGroupEntries, BindGroupLayout,
+            AsBindGroup,
+            binding_types::{storage_buffer_read_only, uniform_buffer}, BindGroup, BindGroupEntries, BindGroupLayout,
             BindGroupLayoutEntries, PipelineCache, PrimitiveTopology, RenderPipelineDescriptor,
             Shader, ShaderStages, SpecializedMeshPipeline, SpecializedMeshPipelineError,
             SpecializedMeshPipelines,
@@ -39,6 +40,7 @@ use bevy::{
     transform::components::GlobalTransform,
     utils::EntityHashMap,
 };
+use crate::material::{WireframeMaterial, WireframeMaterialUniform};
 
 #[derive(Component, Default)]
 pub struct WireframeMesh2d;
@@ -59,7 +61,10 @@ impl FromWorld for WireframeMesh2dPipeline {
             "Face",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::VERTEX | ShaderStages::FRAGMENT,
-                (storage_buffer_read_only::<Vec<Vec4>>(false),),
+                (
+                    uniform_buffer::<WireframeMaterialUniform>(false),
+                    storage_buffer_read_only::<Vec<Vec4>>(false),
+                ),
             ),
         );
         Self {
@@ -263,15 +268,20 @@ pub fn prepare_wireframe2d_bind_group(
     mut commands: Commands,
     pipeline: Res<WireframeMesh2dPipeline>,
     render_device: Res<RenderDevice>,
-    query: Query<(Entity, &FaceBuffer)>,
+    query: Query<(Entity, &WireframeMaterial, &FaceBuffer)>,
 ) {
-    for (entity, face_buffer) in query.iter() {
+    for (entity, material, face_buffer) in query.iter() {
+
         commands
             .entity(entity)
             .insert(Wireframe2dBindGroup(render_device.create_bind_group(
                 "wireframe2d_bind_group",
                 &pipeline.wireframe2d_layout,
-                &BindGroupEntries::single(face_buffer.as_entire_buffer_binding()),
+                &BindGroupEntries::sequential(
+                    (
+                        material,
+                        face_buffer.as_entire_buffer_binding(),)
+            ),
             )));
     }
 }
