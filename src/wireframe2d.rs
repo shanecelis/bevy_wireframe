@@ -20,6 +20,7 @@ use bevy::{
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
             RenderCommandResult, SetItemPipeline, SortedRenderPhase, TrackedRenderPass,
+            ViewSortedRenderPhases,
         },
         render_resource::{
             binding_types::storage_buffer_read_only, BindGroup, BindGroupEntries, BindGroupLayout,
@@ -160,7 +161,7 @@ pub fn extract_wireframe_mesh2d(
         }
 
         let transforms = Mesh2dTransforms {
-            transform: (&transform.affine()).into(),
+            world_from_local: (&transform.affine()).into(),
             flags: MeshFlags::empty().bits(),
         };
 
@@ -193,17 +194,17 @@ pub fn queue_wireframe_mesh2d(
     msaa: Res<Msaa>,
     render_meshes: Res<RenderAssets<GpuMesh>>,
     wireframe_mesh_instances: Res<WireframeMesh2dInstances>,
-    mut views: Query<(
-        &VisibleEntities,
-        &mut SortedRenderPhase<Transparent2d>,
-        &ExtractedView,
-    )>,
+    mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent2d>>,
+    mut views: Query<(Entity, &VisibleEntities, &ExtractedView)>,
 ) {
     if wireframe_mesh_instances.is_empty() {
         return;
     }
     // Iterate each view (a camera is a view)
-    for (visible_entities, mut transparent_phase, view) in &mut views {
+    for (view_entity, visible_entities, view) in &mut views {
+        let Some(transparent_phase) = transparent_render_phases.get_mut(&view_entity) else {
+            continue;
+        };
         let draw_wireframe_mesh2d = transparent_draw_functions
             .read()
             .id::<DrawWireframeMesh2d>();
@@ -239,7 +240,7 @@ pub fn queue_wireframe_mesh2d(
                     )
                     .expect("specialize 2d pipeline");
 
-                let mesh_z = mesh2d_transforms.transform.translation.z;
+                let mesh_z = mesh2d_transforms.world_from_local.translation.z;
                 transparent_phase.add(Transparent2d {
                     entity: *visible_entity,
                     draw_function: draw_wireframe_mesh2d,

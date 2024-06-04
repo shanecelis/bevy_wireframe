@@ -25,46 +25,49 @@ bitflags::bitflags! {
         const UNINITIALIZED     = 0xFFFF;
     }
 }
-#[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
-#[reflect(Default, Debug)]
-#[uniform(1, WireframeMaterialUniform)]
+#[derive(Asset, AsBindGroup, Debug, Clone, TypePath)]
+// #[reflect(Default, Debug)]
+// #[uniform(1, WireframeMaterialUniform)]
 pub struct WireframeMaterial {
-    pub color: Color,
-    pub style: Style,
+    // #[storage(0, read_only, buffer)]
+    // faces: Option<Buffer>,
+    #[uniform(1)]
+    pub color: LinearRgba,
+    // pub style: Style,
 }
 
-impl Default for WireframeMaterial {
-    fn default() -> Self {
-        WireframeMaterial {
-            color: Color::WHITE,
-            style: Style::Solid,
-        }
-    }
-}
+// impl Default for WireframeMaterial {
+//     fn default() -> Self {
+//         WireframeMaterial {
+//             color: Color::WHITE.into(),
+//             // style: Style::Solid,
+//         }
+//     }
+// }
 
 
 /// The GPU representation of the uniform data of a [`WireframeMaterial`].
-#[derive(Clone, Default, ShaderType)]
-pub struct WireframeMaterialUniform {
-    pub color: Vec4,
-    pub flags: u32,
-    pub style: Vec2,
-}
+// #[derive(Clone, Default, ShaderType)]
+// pub struct WireframeMaterialUniform {
+//     pub color: Vec4,
+//     pub flags: u32,
+//     pub style: Vec2,
+// }
 
-impl AsBindGroupShaderType<WireframeMaterialUniform> for WireframeMaterial {
-    fn as_bind_group_shader_type(&self, _images: &RenderAssets<GpuImage>) -> WireframeMaterialUniform {
-        // let mut flags = ColorMaterialFlags::NONE;
-        // if self.texture.is_some() {
-        //     flags |= ColorMaterialFlags::TEXTURE;
-        // }
+// impl AsBindGroupShaderType<WireframeMaterialUniform> for WireframeMaterial {
+//     fn as_bind_group_shader_type(&self, _images: &RenderAssets<GpuImage>) -> WireframeMaterialUniform {
+//         // let mut flags = ColorMaterialFlags::NONE;
+//         // if self.texture.is_some() {
+//         //     flags |= ColorMaterialFlags::TEXTURE;
+//         // }
 
-        WireframeMaterialUniform {
-            color: LinearRgba::from(self.color).to_f32_array().into(),
-            flags: 0,
-            style: Vec2::new(5.0, 5.0)
-        }
-    }
-}
+//         WireframeMaterialUniform {
+//             color: LinearRgba::from(self.color).to_f32_array().into(),
+//             flags: 0,
+//             style: Vec2::new(5.0, 5.0)
+//         }
+//     }
+// }
 
 impl Material2d for WireframeMaterial {
     fn fragment_shader() -> ShaderRef {

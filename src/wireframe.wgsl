@@ -42,7 +42,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     let ti = vertex.id / 3;
     let vi = vertex.id % 3;
     out.bary = vec3<f32>(f32(vi == 0u), f32(vi == 1u), f32(vi == 2u));
-    let model = mesh2d_functions::get_model_matrix(vertex.instance_index);
+    let model = mesh2d_functions::get_world_from_local(vertex.instance_index);
     out.clip_position = mesh2d_functions::mesh2d_position_local_to_clip(model, vec4<f32>(vertex.position, 1.0));
     out.dist = vec4<f32>(tri[ti].w/tri[ti].xyz * out.bary, f32(ti));
     return out;
