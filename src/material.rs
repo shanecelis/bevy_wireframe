@@ -27,7 +27,7 @@ bitflags::bitflags! {
 }
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
 #[reflect(Default, Debug)]
-#[uniform(0, WireframeMaterialUniform)]
+#[uniform(1, WireframeMaterialUniform)]
 pub struct WireframeMaterial {
     pub color: Color,
     pub style: Style,

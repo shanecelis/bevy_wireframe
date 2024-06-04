@@ -1,4 +1,14 @@
 #+title: Todo
+* Make wireframe use a material
+- follow color_material upwards
+- copy Material2dPlugin<M>'s Plugin impl substituting the PreparedMaterial2d with our impl
+- write your own RenderAsset for WireframeMaterial
+
+  impl<M: Material2d> RenderAsset for PreparedMaterial2d<M> {
+- Add the face buffer to the material uniform
+- store the face buffer in a resource entity hash map
+  (that's what's accessible in RenderAsset)
+
 * in bevy repo, wireframe scratch branch
 ** mesh2d_manual is moving forward
 - [X] create a buffer with necessary data, data generated on CPU
