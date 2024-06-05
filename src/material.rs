@@ -2,10 +2,14 @@ use bevy::prelude::*;
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 
 use bevy::{
+
     asset::{embedded_asset, DirectAssetAccessExt, Handle},
-    sprite::{SetMesh2dBindGroup, SetMesh2dViewBindGroup, DrawMesh2d, Material2dDrawPlugin, SetMaterial2dBindGroup},
+    sprite::{SetMesh2dBindGroup, SetMesh2dViewBindGroup, DrawMesh2d, Material2dGenericPlugin, SetMaterial2dBindGroup, Material2dKey, Material2dPipeline, Mesh2dPipelineKey},
 
     render::{
+Extract, ExtractSchedule,
+        renderer::RenderDevice,
+        mesh::MeshVertexBufferLayoutRef,
     render_phase::{
         AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
         RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
@@ -13,7 +17,7 @@ use bevy::{
 
         texture::GpuImage,
         render_asset::RenderAssets,
-    render_resource::*,
+        render_resource::{*, binding_types::storage_buffer_read_only},
     }};
 use crate::wireframe2d::SetFaceBindGroup;
 
@@ -33,6 +37,61 @@ pub type DrawWireframeMaterial2d<M> = (
     DrawMesh2d,
 );
 
+#[derive(Clone, Resource)]
+pub struct WireframePipeline {
+    material2d_pipeline: Material2dPipeline<WireframeMaterial>,
+    face_layout: BindGroupLayout,
+}
+
+fn extract_wireframe_meshes_2d(
+    mut commands: Commands,
+    query: Extract<Query<(Entity, &ViewVisibility, &Handle<WireframeMaterial>)>>,
+) {
+    for (entity, view_visibility, handle) in &query {
+        if view_visibility.get() {
+            commands.entity(entity).insert(handle.clone());
+        }
+    }
+}
+
+impl FromWorld for WireframePipeline {
+    fn from_world(world: &mut World) -> Self {
+        let render_device = world.resource::<RenderDevice>();
+        // let shader = world.load_asset::<Shader>("embedded://bevy_wireframe/wireframe.wgsl");
+        let face_layout = render_device.create_bind_group_layout(
+            "Face",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::VERTEX | ShaderStages::FRAGMENT,
+                (storage_buffer_read_only::<Vec<Vec4>>(false),),
+            ),
+        );
+        Self {
+            material2d_pipeline: Material2dPipeline::from_world(world),
+            // shader,
+            face_layout,
+        }
+    }
+}
+
+// We implement `SpecializedPipeline` to customize the default rendering from `Mesh2dPipeline`
+impl SpecializedMeshPipeline for WireframePipeline {
+    type Key = Material2dKey<WireframeMaterial>;
+
+    fn specialize(
+        &self,
+        key: Self::Key,
+        layout: &MeshVertexBufferLayoutRef,
+    ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
+        let mut descriptor = self.material2d_pipeline.specialize(key, layout)?;
+        descriptor.layout.push(self.face_layout.clone());
+        // descriptor.vertex.shader = self.shader.clone();
+        // descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
+        descriptor.label = Some("wireframe_material2d_pipeline".into());
+        Ok(descriptor)
+    }
+}
+
+
 #[derive(Default)]
 pub struct WireframeMaterial2dPlugin;
 
@@ -41,18 +100,20 @@ impl Plugin for WireframeMaterial2dPlugin {
 
         app.add_plugins(crate::compute::FacePlugin);
         embedded_asset!(app, "wireframe.wgsl");
-        app.add_plugins(Material2dDrawPlugin::<WireframeMaterial, DrawWireframeMaterial2d<WireframeMaterial>>::default());
+        // app.add_plugins(Material2dGenericPlugin::<WireframeMaterial, DrawWireframeMaterial2d<WireframeMaterial>, Material2dPipeline<WireframeMaterial>>::default());
+        app.add_plugins(Material2dGenericPlugin::<WireframeMaterial, DrawWireframeMaterial2d<WireframeMaterial>, WireframePipeline>::default())
             // .register_asset_reflect::<WireframeMaterial>();
 
-        // app.world_mut()
-        //     .resource_mut::<Assets<WireframeMaterial>>()
-        //     .insert(
-        //         &Handle::<WireframeMaterial>::default(),
-        //         WireframeMaterial {
-        //             color: Color::srgb(1.0, 0.0, 1.0),
-        //             ..Default::default()
-        //         },
-        //     );
+                .add_systems(ExtractSchedule, extract_wireframe_meshes_2d);
+        app.world_mut()
+            .resource_mut::<Assets<WireframeMaterial>>()
+            .insert(
+                &Handle::<WireframeMaterial>::default(),
+                WireframeMaterial {
+                    color: Color::srgb(1.0, 0.0, 1.0).into(),
+                    ..Default::default()
+                },
+            );
     }
 }
 
@@ -116,22 +177,10 @@ impl Material2d for WireframeMaterial {
     }
 
     fn specialize(
-        _pipeline: &MaterialPipeline<Self>,
         descriptor: &mut RenderPipelineDescriptor,
-        layout: &MeshVertexBufferLayout,
-        _key: MaterialPipelineKey<Self>,
+        layout: &MeshVertexBufferLayoutRef,
+        key: Material2dKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
-        /// XXX: How can I add the face buffer layout? I don't have access to
-        /// the renderdevice.
-        ///
-        /// Seems like it requires its own pipeline.
-
-        // let vertex_layout = layout.get_layout(&[
-        //     Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
-        //     ATTRIBUTE_BLEND_COLOR.at_shader_location(1),
-        // ])?;
-        // descriptor.vertex.buffers = vec![vertex_layout];
-        //
         Ok(())
     }
 }

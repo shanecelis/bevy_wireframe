@@ -1,6 +1,7 @@
 use bevy::{
+    log::info,
     app::{App, Plugin},
-    asset::{embedded_asset, DirectAssetAccessExt},
+    asset::{embedded_asset, DirectAssetAccessExt, Handle, Asset},
     ecs::{
         component::Component,
         entity::Entity,
@@ -59,6 +60,7 @@ pub struct PosBuffer {
 pub struct FaceBuffer {
     buffer: Buffer,
 }
+use crate::material::WireframeMaterial;
 
 pub struct FacePlugin;
 
@@ -69,7 +71,8 @@ impl Plugin for FacePlugin {
 
         let render_app = app.sub_app_mut(RenderApp);
         let node = FaceComputeNode::from_world(render_app.world_mut());
-        render_app.add_systems(
+        render_app
+            .add_systems(
             Render,
             (
                 prepare_face_buffers.in_set(RenderSet::PrepareResources),
@@ -91,11 +94,11 @@ impl Plugin for FacePlugin {
 fn prepare_face_buffers(
     mut commands: Commands,
     meshes: Res<RenderAssets<GpuMesh>>,
-    query: Query<(Entity, &Mesh2dHandle)>,
+    query: Query<(Entity, &Handle<Mesh>)>,
     render_device: Res<RenderDevice>,
 ) {
     for (entity, handle) in &query {
-        let mesh_asset_id = handle.0.id();
+        let mesh_asset_id = handle.id();
         let Some(gpu_mesh) = meshes.get(mesh_asset_id) else {
             warn!("no gpu mesh");
             continue;
@@ -107,6 +110,7 @@ fn prepare_face_buffers(
             usage: BufferUsages::STORAGE | BufferUsages::VERTEX,
             mapped_at_creation: false,
         });
+        info!("make face buffer");
         commands.entity(entity).insert(FaceBuffer { buffer });
     }
 }
@@ -146,6 +150,7 @@ impl RenderAsset for PosBuffer {
             contents: bytemuck::cast_slice(v_pos_4.as_slice()),
             usage: BufferUsages::STORAGE,
         });
+        info!("make pos buffer");
 
         Ok(PosBuffer {
             vertex_count,
@@ -200,17 +205,12 @@ fn prepare_bind_group(
     pipeline: Res<FacePipeline>,
     render_device: Res<RenderDevice>,
     pos_buffers: Res<RenderAssets<PosBuffer>>,
-    wireframe_mesh: Query<(Entity, &FaceBuffer), With<WireframeMesh2d>>,
-    mut wireframe_mesh_instances: ResMut<WireframeMesh2dInstances>,
+    wireframe_mesh: Query<(Entity, &FaceBuffer, &Mesh2dHandle)>,
 ) {
-    for (entity, dist_buffer) in wireframe_mesh.iter() {
-        let Some(RenderMesh2dInstance { mesh_asset_id, .. }) =
-            wireframe_mesh_instances.get_mut(&entity)
-        else {
-            warn!("no wireframe mesh 2d");
-            return;
-        };
-        let Some(pos_buffer) = pos_buffers.get(*mesh_asset_id) else {
+    for (entity, dist_buffer, handle) in wireframe_mesh.iter() {
+
+        let mesh_asset_id = handle.0.id();
+        let Some(pos_buffer) = pos_buffers.get(mesh_asset_id) else {
             warn!("no pos buffer");
             return;
         };

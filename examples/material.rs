@@ -93,7 +93,8 @@ fn star(
 
     // The `Handle<Mesh>` needs to be wrapped in a `Mesh2dHandle` to use 2d
     // rendering instead of 3d.
-    let handle = Mesh2dHandle(meshes.add(star));
+    // let handle = Mesh2dHandle(meshes.add(star));
+    let handle = meshes.add(star);
     commands.spawn((
         materials.add(WireframeMaterial::default()),
         handle.clone(),
@@ -103,11 +104,12 @@ fn star(
     let mut circle: Mesh = shape.into();
     circle.duplicate_vertices();
     // circle.asset_usage = RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD;
-    let handle = Mesh2dHandle(meshes.add(circle.clone()));
+    // let handle = Mesh2dHandle(meshes.add(circle.clone()));
+    let handle =
 
     commands.spawn((
         materials.add(WireframeMaterial::default()),
-        handle,
+        meshes.add(circle),
         SpatialBundle::from_transform(Transform::from_xyz(-300.0, -100.0, 2.0)),
     ));
 

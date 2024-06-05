@@ -8,7 +8,7 @@
 
 // #ifdef WIREFRAME_MATERIAL
 @group(2) @binding(0) var<uniform> material: WireframeMaterial;
-// @group(3) @binding(0) var<storage> tri: array<vec4<f32>>;
+@group(3) @binding(0) var<storage> tri: array<vec4<f32>>;
 
 struct WireframeMaterial {
     color: vec4<f32>,
