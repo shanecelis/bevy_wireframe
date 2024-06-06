@@ -30,6 +30,8 @@ use bevy::{
         texture::GpuImage,
         Render, RenderApp, RenderSet,
     },
+    core_pipeline::core_2d::graph::{Core2d, Node2d},
+    core_pipeline::core_3d::graph::{Core3d, Node3d},
     sprite::Mesh2dHandle,
 };
 
@@ -73,13 +75,15 @@ impl Plugin for FacePlugin2d {
             Render,
             (
                 prepare_face_buffers2d.in_set(RenderSet::PrepareResources),
-                prepare_bind_group.in_set(RenderSet::PrepareBindGroups),
+                prepare_bind_group2d.in_set(RenderSet::PrepareBindGroups),
             ),
         );
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
-        render_graph.add_node(FaceLabel, node);
-        render_graph.add_node_edge(FaceLabel, bevy::render::graph::CameraDriverLabel);
+        if let Some(graph_2d) = render_graph.get_sub_graph_mut(Core2d) {
+            graph_2d.add_node(FaceLabel, node);
+            graph_2d.add_node_edge(FaceLabel, Node2d::StartMainPass);
+        }
     }
 
     fn finish(&self, app: &mut App) {
@@ -104,8 +108,10 @@ impl Plugin for FacePlugin {
         );
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
-        render_graph.add_node(FaceLabel, node);
-        render_graph.add_node_edge(FaceLabel, bevy::render::graph::CameraDriverLabel);
+        if let Some(graph_3d) = render_graph.get_sub_graph_mut(Core3d) {
+            graph_3d.add_node(FaceLabel, node);
+            graph_3d.add_node_edge(FaceLabel, Node3d::StartMainPass);
+        }
     }
 
     fn finish(&self, app: &mut App) {
@@ -252,13 +258,45 @@ fn prepare_bind_group(
     pipeline: Res<FacePipeline>,
     render_device: Res<RenderDevice>,
     pos_buffers: Res<RenderAssets<PosBuffer>>,
+    wireframe_mesh: Query<(Entity, &FaceBuffer, &Handle<Mesh>)>,
+) {
+    for (entity, dist_buffer, handle) in wireframe_mesh.iter() {
+        let mesh_asset_id = handle.id();
+        let Some(pos_buffer) = pos_buffers.get(mesh_asset_id) else {
+            warn!("no pos buffer");
+            continue;
+        };
+        trace!("start bind group");
+        let bind_group = render_device.create_bind_group(
+            None,
+            &pipeline.layout,
+            &BindGroupEntries::sequential((
+                pos_buffer.buffer.as_entire_buffer_binding(),
+                dist_buffer.buffer.as_entire_buffer_binding(),
+            )),
+        );
+        trace!("end bind group");
+        let vertex_count = pos_buffer.vertex_count;
+        commands.entity(entity).insert(FaceBinding {
+            bind_group,
+            vertex_count,
+            dist_buffer: dist_buffer.buffer.clone(),
+        });
+    }
+}
+
+fn prepare_bind_group2d(
+    mut commands: Commands,
+    pipeline: Res<FacePipeline>,
+    render_device: Res<RenderDevice>,
+    pos_buffers: Res<RenderAssets<PosBuffer>>,
     wireframe_mesh: Query<(Entity, &FaceBuffer, &Mesh2dHandle)>,
 ) {
     for (entity, dist_buffer, handle) in wireframe_mesh.iter() {
         let mesh_asset_id = handle.0.id();
         let Some(pos_buffer) = pos_buffers.get(mesh_asset_id) else {
             warn!("no pos buffer");
-            return;
+            continue;
         };
         trace!("start bind group");
         let bind_group = render_device.create_bind_group(
