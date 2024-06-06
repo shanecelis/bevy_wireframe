@@ -96,5 +96,6 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
     var length = tri[u32(in.dist.w)][i];
 
     I *= step(sin(k * in.bary[j] * length * pi / width_pixel), -0.01);
-    return I * wire_color + (1.0 - I) * color;
+    return vec4<f32>(wire_color.xyz, I);
+    // return I * wire_color + (1.0 - I) * color;
 }
