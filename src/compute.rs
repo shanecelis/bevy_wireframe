@@ -1,5 +1,5 @@
 use bevy::{
-    log::info,
+    log::{info, trace},
     app::{App, Plugin},
     asset::{embedded_asset, DirectAssetAccessExt, Handle, Asset},
     ecs::{
@@ -63,6 +63,34 @@ pub struct FaceBuffer {
 use crate::material::WireframeMaterial;
 
 pub struct FacePlugin;
+pub struct FacePlugin2d;
+
+impl Plugin for FacePlugin2d {
+    fn build(&self, app: &mut App) {
+        embedded_asset!(app, "face_compute.wgsl");
+        app.add_plugins(RenderAssetPlugin::<PosBuffer, GpuImage>::default());
+
+        let render_app = app.sub_app_mut(RenderApp);
+        let node = FaceComputeNode::from_world(render_app.world_mut());
+        render_app
+            .add_systems(
+            Render,
+            (
+                prepare_face_buffers2d.in_set(RenderSet::PrepareResources),
+                prepare_bind_group.in_set(RenderSet::PrepareBindGroups),
+            ),
+        );
+
+        let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
+        render_graph.add_node(FaceLabel, node);
+        render_graph.add_node_edge(FaceLabel, bevy::render::graph::CameraDriverLabel);
+    }
+
+    fn finish(&self, app: &mut App) {
+        // Register our custom pipeline
+        app.sub_app_mut(RenderApp).init_resource::<FacePipeline>();
+    }
+}
 
 impl Plugin for FacePlugin {
     fn build(&self, app: &mut App) {
@@ -91,6 +119,30 @@ impl Plugin for FacePlugin {
     }
 }
 
+fn prepare_face_buffers2d(
+    mut commands: Commands,
+    meshes: Res<RenderAssets<GpuMesh>>,
+    query: Query<(Entity, &Mesh2dHandle)>,
+    render_device: Res<RenderDevice>,
+) {
+    for (entity, handle) in &query {
+        let mesh_asset_id = handle.0.id();
+        let Some(gpu_mesh) = meshes.get(mesh_asset_id) else {
+            warn!("no gpu mesh");
+            continue;
+        };
+        let vertex_count = gpu_mesh.vertex_count as usize;
+        let buffer = render_device.create_buffer(&BufferDescriptor {
+            label: Some("face_compute"),
+            size: (std::mem::size_of::<Vec4>() * vertex_count / 3) as u64,
+            usage: BufferUsages::STORAGE | BufferUsages::VERTEX,
+            mapped_at_creation: false,
+        });
+        trace!("make face buffer 2d");
+        commands.entity(entity).insert(FaceBuffer { buffer });
+    }
+}
+
 fn prepare_face_buffers(
     mut commands: Commands,
     meshes: Res<RenderAssets<GpuMesh>>,
@@ -110,7 +162,7 @@ fn prepare_face_buffers(
             usage: BufferUsages::STORAGE | BufferUsages::VERTEX,
             mapped_at_creation: false,
         });
-        info!("make face buffer");
+        trace!("make face buffer");
         commands.entity(entity).insert(FaceBuffer { buffer });
     }
 }
@@ -214,6 +266,7 @@ fn prepare_bind_group(
             warn!("no pos buffer");
             return;
         };
+        trace!("start bind group");
         let bind_group = render_device.create_bind_group(
             None,
             &pipeline.layout,
@@ -222,6 +275,7 @@ fn prepare_bind_group(
                 dist_buffer.buffer.as_entire_buffer_binding(),
             )),
         );
+        trace!("end bind group");
         let vertex_count = pos_buffer.vertex_count;
         commands.entity(entity).insert(FaceBinding {
             bind_group,

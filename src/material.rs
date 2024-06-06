@@ -4,7 +4,7 @@ use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 use bevy::{
 
     asset::{embedded_asset, DirectAssetAccessExt, Handle},
-    sprite::{SetMesh2dBindGroup, SetMesh2dViewBindGroup, DrawMesh2d, Material2dGenericPlugin, SetMaterial2dBindGroup, Material2dKey, Material2dPipeline, Mesh2dPipelineKey},
+    sprite::{SetMesh2dBindGroup, SetMesh2dViewBindGroup, DrawMesh2d, Material2dGenericPlugin, SetMaterial2dBindGroup, Material2dKey, Material2dPipeline, Mesh2dPipelineKey, Material2dLayout},
 
     render::{
 Extract, ExtractSchedule,
@@ -65,8 +65,11 @@ impl FromWorld for WireframePipeline {
                 (storage_buffer_read_only::<Vec<Vec4>>(false),),
             ),
         );
+        let material2d_pipeline = Material2dPipeline::from_world(world);
+
+        // world.insert_resource(Material2dLayout(face_layout.clone()));
         Self {
-            material2d_pipeline: Material2dPipeline::from_world(world),
+            material2d_pipeline,
             // shader,
             face_layout,
         }
@@ -83,7 +86,11 @@ impl SpecializedMeshPipeline for WireframePipeline {
         layout: &MeshVertexBufferLayoutRef,
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         let mut descriptor = self.material2d_pipeline.specialize(key, layout)?;
+        assert_eq!(descriptor.layout.len(), 3);
         descriptor.layout.push(self.face_layout.clone());
+        assert_eq!(descriptor.layout.len(), 4);
+        descriptor.vertex.shader_defs.push("WIREFRAME_MATERIAL".into());
+        descriptor.fragment.as_mut().map(|f| f.shader_defs.push("WIREFRAME_MATERIAL".into()));
         // descriptor.vertex.shader = self.shader.clone();
         // descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
         descriptor.label = Some("wireframe_material2d_pipeline".into());
@@ -133,7 +140,7 @@ bitflags::bitflags! {
 pub struct WireframeMaterial {
     // #[storage(0, read_only, buffer)]
     // faces: Option<Buffer>,
-    #[uniform(1)]
+    #[uniform(0)]
     pub color: LinearRgba,
     // pub style: Style,
 }
@@ -176,13 +183,13 @@ impl Material2d for WireframeMaterial {
         "embedded://bevy_wireframe/wireframe.wgsl".into()
     }
 
-    fn specialize(
-        descriptor: &mut RenderPipelineDescriptor,
-        layout: &MeshVertexBufferLayoutRef,
-        key: Material2dKey<Self>,
-    ) -> Result<(), SpecializedMeshPipelineError> {
-        Ok(())
-    }
+    // fn specialize(
+    //     descriptor: &mut RenderPipelineDescriptor,
+    //     layout: &MeshVertexBufferLayoutRef,
+    //     key: Material2dKey<Self>,
+    // ) -> Result<(), SpecializedMeshPipelineError> {
+    //     Ok(())
+    // }
 }
 
 /// A component bundle for entities with a [`Mesh2dHandle`](crate::Mesh2dHandle) and a [`WireframeMaterial`].

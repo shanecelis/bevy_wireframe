@@ -112,7 +112,7 @@ pub struct WireframeMesh2dInstances(EntityHashMap<Entity, RenderMesh2dInstance>)
 
 impl Plugin for WireframeMesh2dPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(crate::compute::FacePlugin);
+        app.add_plugins(crate::compute::FacePlugin2d);
         embedded_asset!(app, "wireframe.wgsl");
 
         let render_app = app.sub_app_mut(RenderApp);

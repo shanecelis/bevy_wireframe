@@ -6,18 +6,20 @@
     // mesh2d_bindings::mesh,
 }
 
-// #ifdef WIREFRAME_MATERIAL
-@group(2) @binding(0) var<uniform> material: WireframeMaterial;
-@group(3) @binding(0) var<storage> tri: array<vec4<f32>>;
-
+#ifdef WIREFRAME_MATERIAL
 struct WireframeMaterial {
     color: vec4<f32>,
     // 'flags' is a bit field indicating various options. u32 is 32 bits so we have up to 32 options.
     // flags: u32,
     // style: vec2<f32>,
 };
+@group(2) @binding(0) var<uniform> material: WireframeMaterial;
+@group(3) @binding(0) var<storage> tri: array<vec4<f32>>;
+
 const WIREFRAME_MATERIAL_FLAGS_SCREENSPACE_BIT: u32 = 1u;
-// #endif
+#else
+@group(2) @binding(0) var<storage> tri: array<vec4<f32>>;
+#endif
 
 // The structure of the vertex buffer is as specified in `specialize()`
 struct Vertex {
