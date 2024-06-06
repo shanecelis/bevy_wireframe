@@ -1,25 +1,21 @@
 use bevy::prelude::*;
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 
-use bevy::{
-
-    asset::{embedded_asset, DirectAssetAccessExt, Handle},
-    sprite::{SetMesh2dBindGroup, SetMesh2dViewBindGroup, DrawMesh2d, Material2dGenericPlugin, SetMaterial2dBindGroup, Material2dKey, Material2dPipeline, Mesh2dPipelineKey, Material2dLayout},
-
-    render::{
-Extract, ExtractSchedule,
-        renderer::RenderDevice,
-        mesh::MeshVertexBufferLayoutRef,
-    render_phase::{
-        AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
-        RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
-    },
-
-        texture::GpuImage,
-        render_asset::RenderAssets,
-        render_resource::{*, binding_types::storage_buffer_read_only},
-    }};
 use crate::wireframe2d::SetFaceBindGroup;
+use bevy::{
+    asset::{embedded_asset, Handle},
+    render::{
+        mesh::MeshVertexBufferLayoutRef,
+        render_phase::SetItemPipeline,
+        render_resource::{binding_types::storage_buffer_read_only, *},
+        renderer::RenderDevice,
+        Extract, ExtractSchedule,
+    },
+    sprite::{
+        DrawMesh2d, Material2dGenericPlugin, Material2dKey, Material2dPipeline,
+        SetMaterial2dBindGroup, SetMesh2dBindGroup, SetMesh2dViewBindGroup,
+    },
+};
 
 #[derive(Reflect, Debug, Clone)]
 pub enum Style {
@@ -89,8 +85,13 @@ impl SpecializedMeshPipeline for WireframePipeline {
         assert_eq!(descriptor.layout.len(), 3);
         descriptor.layout.push(self.face_layout.clone());
         assert_eq!(descriptor.layout.len(), 4);
-        descriptor.vertex.shader_defs.push("WIREFRAME_MATERIAL".into());
-        descriptor.fragment.as_mut().map(|f| f.shader_defs.push("WIREFRAME_MATERIAL".into()));
+        descriptor
+            .vertex
+            .shader_defs
+            .push("WIREFRAME_MATERIAL".into());
+        if let Some(f) = descriptor.fragment.as_mut() {
+            f.shader_defs.push("WIREFRAME_MATERIAL".into())
+        }
         // descriptor.vertex.shader = self.shader.clone();
         // descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
         descriptor.label = Some("wireframe_material2d_pipeline".into());
@@ -98,20 +99,21 @@ impl SpecializedMeshPipeline for WireframePipeline {
     }
 }
 
-
 #[derive(Default)]
 pub struct WireframeMaterial2dPlugin;
 
 impl Plugin for WireframeMaterial2dPlugin {
     fn build(&self, app: &mut App) {
-
         app.add_plugins(crate::compute::FacePlugin);
         embedded_asset!(app, "wireframe.wgsl");
         // app.add_plugins(Material2dGenericPlugin::<WireframeMaterial, DrawWireframeMaterial2d<WireframeMaterial>, Material2dPipeline<WireframeMaterial>>::default());
-        app.add_plugins(Material2dGenericPlugin::<WireframeMaterial, DrawWireframeMaterial2d<WireframeMaterial>, WireframePipeline>::default())
+        app.add_plugins(Material2dGenericPlugin::<
+            WireframeMaterial,
+            DrawWireframeMaterial2d<WireframeMaterial>,
+            WireframePipeline,
+        >::default())
             // .register_asset_reflect::<WireframeMaterial>();
-
-                .add_systems(ExtractSchedule, extract_wireframe_meshes_2d);
+            .add_systems(ExtractSchedule, extract_wireframe_meshes_2d);
         app.world_mut()
             .resource_mut::<Assets<WireframeMaterial>>()
             .insert(
@@ -153,7 +155,6 @@ impl Default for WireframeMaterial {
         }
     }
 }
-
 
 /// The GPU representation of the uniform data of a [`WireframeMaterial`].
 // #[derive(Clone, Default, ShaderType)]

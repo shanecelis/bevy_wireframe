@@ -1,16 +1,16 @@
 use bevy::{
-    log::{info, trace},
     app::{App, Plugin},
-    asset::{embedded_asset, DirectAssetAccessExt, Handle, Asset},
+    asset::{embedded_asset, DirectAssetAccessExt, Handle},
     ecs::{
         component::Component,
         entity::Entity,
-        query::{QueryState, With},
+        query::QueryState,
         schedule::IntoSystemConfigs,
-        system::{lifetimeless::SRes, Commands, Query, Res, ResMut, Resource, SystemParamItem},
+        system::{lifetimeless::SRes, Commands, Query, Res, Resource, SystemParamItem},
         world::{FromWorld, World},
     },
     log::warn,
+    log::{info, trace},
     math::Vec4,
     prelude::{Deref, DerefMut},
     render::{
@@ -30,10 +30,8 @@ use bevy::{
         texture::GpuImage,
         Render, RenderApp, RenderSet,
     },
-    sprite::{Mesh2dHandle, RenderMesh2dInstance},
+    sprite::Mesh2dHandle,
 };
-
-use crate::wireframe2d::{WireframeMesh2d, WireframeMesh2dInstances};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
 pub struct FaceLabel;
@@ -60,7 +58,6 @@ pub struct PosBuffer {
 pub struct FaceBuffer {
     buffer: Buffer,
 }
-use crate::material::WireframeMaterial;
 
 pub struct FacePlugin;
 pub struct FacePlugin2d;
@@ -72,8 +69,7 @@ impl Plugin for FacePlugin2d {
 
         let render_app = app.sub_app_mut(RenderApp);
         let node = FaceComputeNode::from_world(render_app.world_mut());
-        render_app
-            .add_systems(
+        render_app.add_systems(
             Render,
             (
                 prepare_face_buffers2d.in_set(RenderSet::PrepareResources),
@@ -99,8 +95,7 @@ impl Plugin for FacePlugin {
 
         let render_app = app.sub_app_mut(RenderApp);
         let node = FaceComputeNode::from_world(render_app.world_mut());
-        render_app
-            .add_systems(
+        render_app.add_systems(
             Render,
             (
                 prepare_face_buffers.in_set(RenderSet::PrepareResources),
@@ -260,7 +255,6 @@ fn prepare_bind_group(
     wireframe_mesh: Query<(Entity, &FaceBuffer, &Mesh2dHandle)>,
 ) {
     for (entity, dist_buffer, handle) in wireframe_mesh.iter() {
-
         let mesh_asset_id = handle.0.id();
         let Some(pos_buffer) = pos_buffers.get(mesh_asset_id) else {
             warn!("no pos buffer");

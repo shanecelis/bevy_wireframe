@@ -19,8 +19,7 @@ use bevy::{
         render_asset::RenderAssets,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
-            RenderCommandResult, SetItemPipeline, SortedRenderPhase, TrackedRenderPass,
-            ViewSortedRenderPhases,
+            RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
         },
         render_resource::{
             binding_types::storage_buffer_read_only, BindGroup, BindGroupEntries, BindGroupLayout,
