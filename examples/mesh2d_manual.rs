@@ -6,9 +6,10 @@
 //! [`Material2d`]: bevy::sprite::Material2d
 
 use bevy::{
+    color::palettes::{basic, css},
     prelude::*,
     render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
-    sprite::Mesh2dHandle,
+    sprite::{Mesh2dHandle, MaterialMesh2dBundle},
 };
 
 use std::f32::consts::PI;
@@ -34,6 +35,7 @@ fn star(
     mut commands: Commands,
     // We will add a new Mesh for the star being created
     mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     // Let's define the mesh for the object we want to draw: a nice star.
     // We will specify here what kind of topology is used to define the mesh,
@@ -92,12 +94,23 @@ fn star(
 
     // The `Handle<Mesh>` needs to be wrapped in a `Mesh2dHandle` to use 2d
     // rendering instead of 3d.
-    let handle = Mesh2dHandle(meshes.add(star));
-    commands.spawn((
-        WireframeMesh2d,
-        handle.clone(),
-        SpatialBundle::INHERITED_IDENTITY,
-    ));
+    // let handle = Mesh2dHandle(meshes.add(star));
+
+    commands.spawn((MaterialMesh2dBundle {
+        mesh: meshes.add(star).into(), //Rectangle::new(100.0, 100.0)).into(),
+        // material: materials.add(Color::BLACK.with_alpha(0.5)),
+        // material: materials.add(Color::from(css::LEMON_CHIFFON)),
+        // material: materials.add(Color::WHITE),
+        material: materials.add(Color::BLACK),
+        transform: Transform::from_xyz(0.0, 0.0, 0.0),
+        ..default()
+    }, WireframeMesh2d));
+    // commands.spawn((
+    //     WireframeMesh2d,
+    //     material: materials.add(Color::BLACK),
+    //     handle.clone(),
+    //     SpatialBundle::INHERITED_IDENTITY,
+    // ));
     let shape = Circle { radius: 50.0 };
     let mut circle: Mesh = shape.into();
     circle.duplicate_vertices();

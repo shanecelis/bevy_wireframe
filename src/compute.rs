@@ -322,9 +322,9 @@ impl Node for FaceComputeNode {
         self.query.update_archetypes(world);
     }
 
-    fn output(&self) -> Vec<SlotInfo> {
-        vec![SlotInfo::new("face", SlotType::Buffer)]
-    }
+    // fn output(&self) -> Vec<SlotInfo> {
+        // vec![SlotInfo::new("face", SlotType::Buffer)]
+    // }
 
     fn run(
         &self,
@@ -332,6 +332,7 @@ impl Node for FaceComputeNode {
         render_context: &mut RenderContext,
         world: &World,
     ) -> Result<(), NodeRunError> {
+        // trace!("start compute");
         for wireframe_binding in self.query.iter_manual(world) {
             let bind_group = &wireframe_binding.bind_group;
             let pipeline_cache = world.resource::<PipelineCache>();
@@ -343,12 +344,13 @@ impl Node for FaceComputeNode {
 
             let update_pipeline = pipeline_cache
                 .get_compute_pipeline(pipeline.pipeline)
-                .unwrap();
+                .expect("no compute pipeline");
             pass.set_bind_group(0, bind_group, &[]);
             pass.set_pipeline(update_pipeline);
             pass.dispatch_workgroups((wireframe_binding.vertex_count / 3) as u32, 1, 1);
-            graph.set_output("face", wireframe_binding.dist_buffer.clone())?;
+            // graph.set_output("face", wireframe_binding.dist_buffer.clone())?;
         }
+        // trace!("end compute");
         Ok(())
     }
 }

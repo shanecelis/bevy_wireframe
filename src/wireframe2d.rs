@@ -102,12 +102,14 @@ type DrawWireframeMesh2d = (
     DrawMesh2d,
 );
 
-/// Plugin that renders [`WireframeMesh2d`]s
-pub struct WireframeMesh2dPlugin;
 
 /// Our custom pipeline needs its own instance storage
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct WireframeMesh2dInstances(EntityHashMap<Entity, RenderMesh2dInstance>);
+
+/// Plugin that renders [`WireframeMesh2d`]s
+// XXX: Make enum with Core2d and Core3d variants?
+pub struct WireframeMesh2dPlugin;
 
 impl Plugin for WireframeMesh2dPlugin {
     fn build(&self, app: &mut App) {
@@ -246,7 +248,7 @@ pub fn queue_wireframe_mesh2d(
                     pipeline: pipeline_id,
                     // The 2d render items are sorted according to their z value before rendering,
                     // in order to get correct transparency
-                    sort_key: FloatOrd(mesh_z),
+                    sort_key: FloatOrd(mesh_z + 0.1),
                     // This material is not batched
                     batch_range: 0..1,
                     extra_index: PhaseItemExtraIndex::NONE,

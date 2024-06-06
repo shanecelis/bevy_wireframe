@@ -81,9 +81,9 @@ fn fragment(in: FragmentInput) -> @location(0) vec4<f32> {
     let j = (i + 1) % 3;
     //let d = min(dist[0], min(dist[1], dist[2]));
     let d = dist[i];
-    var I = exp2(-2.0 * d * d);
+    var I = exp2(-1.0 * d * d);
     var k = 1.0;
-    if i == 1 {
+    if i == 0 || i == 2 {
             k = -1.0;
     }
     var wire_color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
